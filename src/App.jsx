@@ -243,7 +243,15 @@ const App = () => {
   };
 
   const enterEvent = (event) => {
+    // Clear all previous data when entering a new event
     setCurrentEvent(event);
+    setParticipants([]);
+    setItems([]);
+    setBillId(null);
+    setTaxPercent(10);
+    setTipPercent(15);
+    setExtractedItems([]);
+    setShowExtractedPreview(false);
     setActiveTab('items');
   };
 

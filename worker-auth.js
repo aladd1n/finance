@@ -605,10 +605,18 @@ export default {
           );
 
           if (!visionResponse.ok) {
-            throw new Error('Vision API request failed');
+            const errorText = await visionResponse.text();
+            console.error('Vision API error response:', errorText);
+            throw new Error(`Vision API request failed: ${visionResponse.status} - ${errorText}`);
           }
 
           const visionData = await visionResponse.json();
+          
+          // Check for errors in the response
+          if (visionData.responses && visionData.responses[0]?.error) {
+            const apiError = visionData.responses[0].error;
+            throw new Error(`Vision API error: ${apiError.message || JSON.stringify(apiError)}`);
+          }
           const textAnnotations = visionData.responses[0]?.textAnnotations;
 
           if (!textAnnotations || textAnnotations.length === 0) {
@@ -629,7 +637,11 @@ export default {
 
         } catch (error) {
           console.error('Vision API error:', error);
-          return new Response(JSON.stringify({ error: 'Failed to process receipt' }), {
+          return new Response(JSON.stringify({ 
+            error: 'Failed to process receipt',
+            details: error.message,
+            stack: error.stack
+          }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
