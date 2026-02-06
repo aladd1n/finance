@@ -89,15 +89,21 @@ npm run dev
 
 ## Rollback Plan
 
-If issues occur, revert the API URL:
+If issues occur with the new configuration:
 
-1. **Quick Fix**: Set environment variable in Cloudflare Pages:
-   ```
-   VITE_API_URL = http://localhost:8787/api
-   ```
-   (Not recommended for production)
+1. **Quick Fix - Revert to old default**: 
+   - This would require reverting the code commit
+   - Not recommended unless there's a critical issue
 
-2. **Proper Rollback**: Revert the commit and redeploy
+2. **Proper Approach**: 
+   - Check Cloudflare Workers logs: `wrangler tail`
+   - Verify D1 database is accessible
+   - Check CORS settings on the Worker
+   - Ensure Worker is deployed: `wrangler deploy`
+
+3. **Emergency Fallback**:
+   - If Worker is down, localStorage will serve cached data
+   - Deploy a hotfix to Worker if needed
 
 ## Expected Behavior After Fix
 
