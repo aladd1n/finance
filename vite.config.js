@@ -17,8 +17,6 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: false,
-    // Optimize bundle
-    minify: 'terser'
+    sourcemap: false
   }
 })
