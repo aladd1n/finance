@@ -170,7 +170,7 @@ const App = () => {
 
   const loadLatestBillFromServer = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/bills`, {
+      const response = await fetch(`${API_URL}/bills`, {
         headers: getAuthHeaders()
       });
       if (response.ok) {
@@ -185,8 +185,9 @@ const App = () => {
     return null;
   };
 
-  // --- Events API Functions ---
+  // --- Event Management Functions ---
   const loadEvents = async () => {
+    if (!user) return;
     try {
       const response = await fetch(`${API_URL}/api/events`, {
         headers: getAuthHeaders()
@@ -200,19 +201,22 @@ const App = () => {
     }
   };
 
-  const createEvent = async (title, eventDate) => {
+  const createEvent = async () => {
+    if (!isAdmin || !newEventTitle.trim()) return;
     try {
       const response = await fetch(`${API_URL}/api/events`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ title, event_date: eventDate })
+        body: JSON.stringify({
+          title: newEventTitle,
+          event_date: newEventDate || null
+        })
       });
       if (response.ok) {
         const event = await response.json();
-        setAllEvents([event, ...allEvents]);
+        setAllEvents([...allEvents, event]);
         setNewEventTitle('');
         setNewEventDate('');
-        return event;
       }
     } catch (error) {
       console.error('Failed to create event:', error);
@@ -220,8 +224,8 @@ const App = () => {
   };
 
   const deleteEvent = async (eventId) => {
-    if (!window.confirm('Bu tədbirə silmək istəyirsiniz?')) return;
-    
+    if (!isAdmin) return;
+    if (!confirm('Delete this event? All associated bills will also be deleted.')) return;
     try {
       const response = await fetch(`${API_URL}/api/events/${eventId}`, {
         method: 'DELETE',
@@ -241,13 +245,11 @@ const App = () => {
   const enterEvent = (event) => {
     setCurrentEvent(event);
     setActiveTab('items');
-    // Load bills for this event
-    // TODO: Implement loading bills filtered by event_id
   };
 
   const exitEvent = () => {
     setCurrentEvent(null);
-    setActiveTab('items');
+    loadEvents();
   };
 
   // --- Check authentication on mount ---
@@ -274,38 +276,21 @@ const App = () => {
   useEffect(() => {
     if (!user) return;
     const loadData = async () => {
-      // Load events first
-      await loadEvents();
+      const serverBill = await loadLatestBillFromServer();
       
-      // Load latest bill if no event is selected
-      if (!currentEvent) {
-        const serverBill = await loadLatestBillFromServer();
-        
-        if (serverBill) {
-  // --- Load from Cloudflare D1 Database ---
-  useEffect(() => {
-    if (!user) return;
-    const loadData = async () => {
-      // Load events first
-      await loadEvents();
-      
-      // Load latest bill if no event is selected
-      if (!currentEvent) {
-        const serverBill = await loadLatestBillFromServer();
-        
-        if (serverBill) {
-          if (serverBill.participants) setParticipants(serverBill.participants);
-          if (serverBill.items) setItems(serverBill.items);
-          if (serverBill.taxPercent !== undefined) setTaxPercent(serverBill.taxPercent);
-          if (serverBill.tipPercent !== undefined) setTipPercent(serverBill.tipPercent);
-          if (serverBill.id) setBillId(serverBill.id);
-          setLastSaved(new Date(serverBill.updatedAt));
-          setSyncStatus('synced');
-        }
+      if (serverBill) {
+        if (serverBill.participants) setParticipants(serverBill.participants);
+        if (serverBill.items) setItems(serverBill.items);
+        if (serverBill.taxPercent !== undefined) setTaxPercent(serverBill.taxPercent);
+        if (serverBill.tipPercent !== undefined) setTipPercent(serverBill.tipPercent);
+        if (serverBill.id) setBillId(serverBill.id);
+        setLastSaved(new Date(serverBill.updatedAt));
+        setSyncStatus('synced');
       }
     };
 
     loadData();
+    loadEvents();
   }, [user]);
 
   useEffect(() => {
@@ -790,99 +775,89 @@ const App = () => {
 
       <main className="max-w-2xl mx-auto p-4 space-y-6">
         
-        {/* Dashboard View - Show when no event is selected */}
+        {/* Dashboard - Event Management */}
         {!currentEvent && (
           <div className="space-y-6">
             {/* Welcome Header */}
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-6 text-center">
-              <Calendar size={48} className="mx-auto text-blue-600 mb-3" />
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Tədbir İdarəsi</h2>
-              <p className="text-slate-600">Tədbir seçin və ya yeni tədbir yaradın</p>
+            <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 shadow-lg`}>
+              <h2 className="text-2xl font-bold mb-2">Tədbirlər Paneli</h2>
+              <p className={`${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>
+                Tədbirlərinizi idarə edin və hər bir tədbir üçün xərcləri bölüşdürün
+              </p>
             </div>
 
-            {/* Create New Event Form (Admin Only) */}
+            {/* Create Event (Admin Only) */}
             {isAdmin && (
-              <div className={`rounded-2xl p-6 border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <Plus size={20} className="text-blue-600" /> Yeni Tədbir Yarat
+              <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 shadow-lg`}>
+                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                  <Plus className="text-blue-600" /> Yeni Tədbir Yarat
                 </h3>
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!newEventTitle || !newEventDate) {
-                    alert('Zəhmət olmasa bütün xanaları doldurun');
-                    return;
-                  }
-                  createEvent(newEventTitle, newEventDate);
-                }} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Tədbir Adı</label>
-                    <input 
-                      type="text"
-                      placeholder="məs. Doğum günü şənliyi, İş yoldaşları ilə nahar"
-                      className={`w-full p-3 rounded-xl border-2 focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
-                      value={newEventTitle}
-                      onChange={(e) => setNewEventTitle(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Tarix və Vaxt</label>
-                    <input 
-                      type="datetime-local"
-                      className={`w-full p-3 rounded-xl border-2 focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
-                      value={newEventDate}
-                      onChange={(e) => setNewEventDate(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <button 
-                    type="submit"
-                    className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition"
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Tədbir adı (məs. Doğum günü 2024)"
+                    className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
+                    value={newEventTitle}
+                    onChange={(e) => setNewEventTitle(e.target.value)}
+                  />
+                  <input
+                    type="date"
+                    className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
+                    value={newEventDate}
+                    onChange={(e) => setNewEventDate(e.target.value)}
+                  />
+                  <button
+                    onClick={createEvent}
+                    disabled={!newEventTitle.trim()}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition"
                   >
                     <Plus size={20} /> Tədbir Yarat
                   </button>
-                </form>
+                </div>
               </div>
             )}
 
             {/* Events List */}
-            <div className={`rounded-2xl p-6 border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <Calendar size={20} className="text-purple-600" /> Tədirlər
-              </h3>
-              
+            <div>
+              <h3 className="font-bold text-lg mb-4">Tədbirlər ({allEvents.length})</h3>
               {allEvents.length === 0 ? (
-                <div className="text-center py-12 text-slate-400">
-                  <Calendar size={48} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">Hələ heç bir tədbir yoxdur</p>
-                  {isAdmin && <p className="text-xs mt-1">Yuxarıda yeni tədbir yaradın</p>}
+                <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-8 shadow-lg text-center`}>
+                  <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <p className={`${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>
+                    Hələ heç bir tədbir yoxdur
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {allEvents.map((event) => (
+                  {allEvents.map(event => (
                     <div 
-                      key={event.id} 
-                      className={`p-4 rounded-xl border-2 hover:shadow-lg transition cursor-pointer ${darkMode ? 'bg-gray-700 border-gray-600 hover:border-blue-500' : 'bg-slate-50 border-slate-200 hover:border-blue-400'}`}
+                      key={event.id}
+                      className={`${darkMode ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:bg-gray-50'} rounded-2xl p-4 shadow-lg cursor-pointer transition group`}
                       onClick={() => enterEvent(event)}
                     >
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <h4 className="font-bold text-lg">{event.title}</h4>
-                          <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
-                            <Calendar size={14} /> {new Date(event.event_date).toLocaleString('az-AZ', { dateStyle: 'medium', timeStyle: 'short' })}
-                          </p>
+                          {event.event_date && (
+                            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>
+                              {new Date(event.event_date).toLocaleDateString('az-AZ')}
+                            </p>
+                          )}
                         </div>
-                        {isAdmin && (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteEvent(event.id);
-                            }}
-                            className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        )}
+                        <div className="flex items-center gap-3">
+                          {isAdmin && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteEvent(event.id);
+                              }}
+                              className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-red-600' : 'bg-slate-100 hover:bg-red-600'} text-red-500 hover:text-white transition`}
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                          <ChevronRight className="text-blue-600 group-hover:translate-x-1 transition" />
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -892,48 +867,54 @@ const App = () => {
           </div>
         )}
 
-        {/* Bill Management View - Show when event is selected */}
+        {/* Bill Management - shown when event is selected */}
         {currentEvent && (
-          <div className="space-y-6">
-            {/* Event Header with Back Button */}
-            <div className={`rounded-xl p-4 border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blue-200'}`}>
+          <>
+            {/* Back to Dashboard Button */}
+            <button
+              onClick={exitEvent}
+              className={`${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'} rounded-xl p-3 shadow flex items-center gap-2 font-medium transition`}
+            >
+              <ChevronRight className="rotate-180" size={20} />
+              Tədbirlərə qayıt
+            </button>
+
+            {/* Current Event Header */}
+            <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-4 shadow-lg`}>
               <div className="flex items-center gap-3">
-                <button
-                  onClick={exitEvent}
-                  className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white hover:bg-blue-100'} transition`}
-                >
-                  <ChevronRight size={20} className="transform rotate-180" />
-                </button>
-                <div className="flex-1">
-                  <h2 className="font-bold text-lg">{currentEvent.title}</h2>
-                  <p className="text-xs text-slate-500">
-                    {new Date(currentEvent.event_date).toLocaleString('az-AZ', { dateStyle: 'medium', timeStyle: 'short' })}
-                  </p>
+                <Calendar className="text-blue-600" size={24} />
+                <div>
+                  <h2 className="text-xl font-bold">{currentEvent.title}</h2>
+                  {currentEvent.event_date && (
+                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>
+                      {new Date(currentEvent.event_date).toLocaleDateString('az-AZ')}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
-
-            {/* Navigation Tabs */}
-            <div className="flex bg-slate-200 p-1 rounded-xl gap-1">
-              <button 
-                onClick={() => setActiveTab('people')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'people' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
-              >
-                <Users size={16} /> İştirakçılar ({participants.length})
-              </button>
-              <button 
-                onClick={() => setActiveTab('items')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'items' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
-              >
-                <Receipt size={16} /> Məhsullar ({items.length})
-              </button>
-              <button 
-                onClick={() => setActiveTab('summary')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'summary' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
-              >
-                <Share2 size={16} /> Xülasə
-              </button>
-            </div>
+        
+        {/* Navigation Tabs */}
+        <div className="flex bg-slate-200 p-1 rounded-xl gap-1">
+          <button 
+            onClick={() => setActiveTab('people')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'people' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
+          >
+            <Users size={16} /> İştirakçılar ({participants.length})
+          </button>
+          <button 
+            onClick={() => setActiveTab('items')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'items' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
+          >
+            <Receipt size={16} /> Məhsullar ({items.length})
+          </button>
+          <button 
+            onClick={() => setActiveTab('summary')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'summary' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
+          >
+            <Share2 size={16} /> Xülasə
+          </button>
+        </div>
 
         {/* Section: People Management */}
         {activeTab === 'people' && (
@@ -1483,8 +1464,8 @@ const App = () => {
             </button>
           </div>
         )}
-        
-        </div>
+
+          </>
         )}
       </main>
 
@@ -1515,8 +1496,8 @@ const App = () => {
           </>
         )}
       </div>
-    </div>
-    )}
+      </div>
+      )}
     </div>
     </div>
   );
