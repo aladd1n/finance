@@ -1,14 +1,48 @@
 # Google OAuth Setup Guide
 
-Your finance app now has Google OAuth authentication integrated!
+Your finance app now has Google OAuth authentication with role-based access (Admin/User)!
+
+## Quick Setup for Production
+
+You need to set Google OAuth secrets in Cloudflare. Run these commands:
+
+```bash
+# Set Google OAuth Client ID
+npx wrangler secret put GOOGLE_CLIENT_ID
+# When prompted, paste your Google Client ID
+
+# Set Google OAuth Client Secret
+npx wrangler secret put GOOGLE_CLIENT_SECRET
+# When prompted, paste your Google Client Secret
+
+# Set redirect URI (your worker URL)
+npx wrangler secret put REDIRECT_URI
+# When prompted, enter: https://finance.psszdh.workers.dev/auth/callback
+
+# Set frontend URL (Pages or local)
+npx wrangler secret put FRONTEND_URL
+# When prompted, enter: https://your-frontend-url
+```
+
+## Getting Google OAuth Credentials
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+2. Create a new OAuth 2.0 Client ID (or use existing)
+3. Add authorized redirect URIs:
+   ```
+   https://finance.psszdh.workers.dev/auth/callback
+   ```
+4. Copy the Client ID and Client Secret
 
 ## OAuth Credentials
 
-Your OAuth credentials have been configured. Keep these secret and never commit them to git!
+Your OAuth credentials should be configured as Cloudflare Secrets. Keep these secret and never commit them to git!
 
 - **Client ID:** `<your-client-id>.apps.googleusercontent.com`
 - **Client Secret:** `GOCSPX-<your-client-secret>`
-- **Status:** ✅ Enabled
+- **Redirect URI:** `https://finance.psszdh.workers.dev/auth/callback`
+- **Frontend URL:** Your Cloudflare Pages or frontend URL
+- **Status:** ⚠️ Configure secrets using commands above
 - **Test Users:** OAuth access is restricted to test users listed on your OAuth consent screen
 
 > **Note:** Actual credentials are stored securely in `.dev.vars` (local) and Cloudflare Secrets (production).
@@ -23,14 +57,13 @@ Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials) 
 ```
 http://localhost:8787
 http://localhost:3000
-https://finance.pages.dev (your Cloudflare Pages URL)
-https://finance.your-subdomain.workers.dev (your Worker URL)
+https://finance.psszdh.workers.dev
 ```
 
 #### Authorized Redirect URIs:
 ```
 http://localhost:8787/auth/callback
-https://finance.your-subdomain.workers.dev/auth/callback
+https://finance.psszdh.workers.dev/auth/callback
 ```
 
 ### 2. Local Development Setup
@@ -47,7 +80,18 @@ FRONTEND_URL=http://localhost:3000
 
 > **Security Note:** The `.dev.vars` file is gitignored and contains your actual OAuth credentials. Never commit this file!
 
-### 3. Initialize D1 Database with Auth Tables
+### 3. Role-Based Access
+
+- **Admin:** First user to sign up becomes admin automatically
+  - Can add/edit/delete bills
+  - Can manage participants and items
+  - Auto-save enabled
+  
+- **User:** All subsequent users are regular users
+  - Can view bills
+  - Can mark their payment status
+  - Can see their share amounts
+  - Cannot create/edit/delete bills
 
 Run this command to create users and sessions tables:
 
