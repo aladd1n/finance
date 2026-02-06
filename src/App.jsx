@@ -54,6 +54,7 @@ const App = () => {
   const [currentEvent, setCurrentEvent] = useState(null);
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventDate, setNewEventDate] = useState('');
+  const [loadingEventData, setLoadingEventData] = useState(false);
   
   const [items, setItems] = useState([]);
   const [itemsExpanded, setItemsExpanded] = useState(true);
@@ -251,18 +252,11 @@ const App = () => {
   };
 
   const enterEvent = async (event) => {
-    // Clear all previous data when entering a new event
+    setLoadingEventData(true);
     setCurrentEvent(event);
-    setParticipants([]);
-    setItems([]);
-    setBillId(null);
-    setTaxPercent(10);
-    setTipPercent(15);
-    setExtractedItems([]);
-    setShowExtractedPreview(false);
     setActiveTab('items');
     
-    // Load bills for this event
+    // Load bills for this event first
     try {
       const response = await fetch(`${API_URL}/api/bills?event_id=${event.id}`, {
         headers: getAuthHeaders()
@@ -270,16 +264,41 @@ const App = () => {
       if (response.ok) {
         const bills = await response.json();
         if (bills.length > 0) {
+          // Load existing data
           const latestBill = bills[0];
-          if (latestBill.participants) setParticipants(latestBill.participants);
-          if (latestBill.items) setItems(latestBill.items);
-          if (latestBill.taxPercent !== undefined) setTaxPercent(latestBill.taxPercent);
-          if (latestBill.tipPercent !== undefined) setTipPercent(latestBill.tipPercent);
-          if (latestBill.id) setBillId(latestBill.id);
+          setParticipants(latestBill.participants || []);
+          setItems(latestBill.items || []);
+          setTaxPercent(latestBill.taxPercent !== undefined ? latestBill.taxPercent : 10);
+          setTipPercent(latestBill.tipPercent !== undefined ? latestBill.tipPercent : 15);
+          setBillId(latestBill.id || null);
+        } else {
+          // No existing data, start fresh
+          setParticipants([]);
+          setItems([]);
+          setBillId(null);
+          setTaxPercent(10);
+          setTipPercent(15);
         }
+      } else {
+        // Error or no data, start fresh
+        setParticipants([]);
+        setItems([]);
+        setBillId(null);
+        setTaxPercent(10);
+        setTipPercent(15);
       }
+      setExtractedItems([]);
+      setShowExtractedPreview(false);
     } catch (error) {
       console.error('Failed to load event bills:', error);
+      // On error, start fresh
+      setParticipants([]);
+      setItems([]);
+      setBillId(null);
+      setTaxPercent(10);
+      setTipPercent(15);
+    } finally {
+      setLoadingEventData(false);
     }
   };
 
@@ -316,7 +335,7 @@ const App = () => {
 
   useEffect(() => {
     // Only admins can auto-save bills and only within an event
-    if (!isAdmin || !currentEvent) return;
+    if (!isAdmin || !currentEvent || loadingEventData) return;
     
     // Skip saving on initial mount (before data is loaded from server)
     if (billId === null && participants.length === 0 && items.length === 0) {
@@ -338,7 +357,7 @@ const App = () => {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [participants, items, taxPercent, tipPercent, currentEvent]);
+  }, [participants, items, taxPercent, tipPercent, currentEvent, loadingEventData]);
 
   // --- Logic ---
   
