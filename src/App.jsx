@@ -170,7 +170,7 @@ const App = () => {
 
   const loadLatestBillFromServer = async () => {
     try {
-      const response = await fetch(`${API_URL}/bills`, {
+      const response = await fetch(`${API_URL}/api/bills`, {
         headers: getAuthHeaders()
       });
       if (response.ok) {
@@ -183,6 +183,71 @@ const App = () => {
       console.error('Failed to load latest bill from Cloudflare D1:', error);
     }
     return null;
+  };
+
+  // --- Events API Functions ---
+  const loadEvents = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/events`, {
+        headers: getAuthHeaders()
+      });
+      if (response.ok) {
+        const events = await response.json();
+        setAllEvents(events);
+      }
+    } catch (error) {
+      console.error('Failed to load events:', error);
+    }
+  };
+
+  const createEvent = async (title, eventDate) => {
+    try {
+      const response = await fetch(`${API_URL}/api/events`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ title, event_date: eventDate })
+      });
+      if (response.ok) {
+        const event = await response.json();
+        setAllEvents([event, ...allEvents]);
+        setNewEventTitle('');
+        setNewEventDate('');
+        return event;
+      }
+    } catch (error) {
+      console.error('Failed to create event:', error);
+    }
+  };
+
+  const deleteEvent = async (eventId) => {
+    if (!window.confirm('Bu tədbirə silmək istəyirsiniz?')) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/events/${eventId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      if (response.ok) {
+        setAllEvents(allEvents.filter(e => e.id !== eventId));
+        if (currentEvent?.id === eventId) {
+          setCurrentEvent(null);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete event:', error);
+    }
+  };
+
+  const enterEvent = (event) => {
+    setCurrentEvent(event);
+    setActiveTab('items');
+    // Load bills for this event
+    // TODO: Implement loading bills filtered by event_id
+  };
+
+  const exitEvent = () => {
+    setCurrentEvent(null);
+    setActiveTab('items');
   };
 
   // --- Check authentication on mount ---
@@ -209,16 +274,34 @@ const App = () => {
   useEffect(() => {
     if (!user) return;
     const loadData = async () => {
-      const serverBill = await loadLatestBillFromServer();
+      // Load events first
+      await loadEvents();
       
-      if (serverBill) {
-        if (serverBill.participants) setParticipants(serverBill.participants);
-        if (serverBill.items) setItems(serverBill.items);
-        if (serverBill.taxPercent !== undefined) setTaxPercent(serverBill.taxPercent);
-        if (serverBill.tipPercent !== undefined) setTipPercent(serverBill.tipPercent);
-        if (serverBill.id) setBillId(serverBill.id);
-        setLastSaved(new Date(serverBill.updatedAt));
-        setSyncStatus('synced');
+      // Load latest bill if no event is selected
+      if (!currentEvent) {
+        const serverBill = await loadLatestBillFromServer();
+        
+        if (serverBill) {
+  // --- Load from Cloudflare D1 Database ---
+  useEffect(() => {
+    if (!user) return;
+    const loadData = async () => {
+      // Load events first
+      await loadEvents();
+      
+      // Load latest bill if no event is selected
+      if (!currentEvent) {
+        const serverBill = await loadLatestBillFromServer();
+        
+        if (serverBill) {
+          if (serverBill.participants) setParticipants(serverBill.participants);
+          if (serverBill.items) setItems(serverBill.items);
+          if (serverBill.taxPercent !== undefined) setTaxPercent(serverBill.taxPercent);
+          if (serverBill.tipPercent !== undefined) setTipPercent(serverBill.tipPercent);
+          if (serverBill.id) setBillId(serverBill.id);
+          setLastSaved(new Date(serverBill.updatedAt));
+          setSyncStatus('synced');
+        }
       }
     };
 
@@ -707,35 +790,150 @@ const App = () => {
 
       <main className="max-w-2xl mx-auto p-4 space-y-6">
         
-        {/* Navigation Tabs */}
-        <div className="flex bg-slate-200 p-1 rounded-xl gap-1">
-          {isAdmin && (
-            <button 
-              onClick={() => setActiveTab('dashboard')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'dashboard' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
-            >
-              <Calendar size={16} /> Tədbirlər
-            </button>
-          )}
-          <button 
-            onClick={() => setActiveTab('people')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'people' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
-          >
-            <Users size={16} /> İştirakçılar ({participants.length})
-          </button>
-          <button 
-            onClick={() => setActiveTab('items')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'items' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
-          >
-            <Receipt size={16} /> Məhsullar ({items.length})
-          </button>
-          <button 
-            onClick={() => setActiveTab('summary')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'summary' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
-          >
-            <Share2 size={16} /> Xülasə
-          </button>
-        </div>
+        {/* Dashboard View - Show when no event is selected */}
+        {!currentEvent && (
+          <div className="space-y-6">
+            {/* Welcome Header */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-6 text-center">
+              <Calendar size={48} className="mx-auto text-blue-600 mb-3" />
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">Tədbir İdarəsi</h2>
+              <p className="text-slate-600">Tədbir seçin və ya yeni tədbir yaradın</p>
+            </div>
+
+            {/* Create New Event Form (Admin Only) */}
+            {isAdmin && (
+              <div className={`rounded-2xl p-6 border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <Plus size={20} className="text-blue-600" /> Yeni Tədbir Yarat
+                </h3>
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!newEventTitle || !newEventDate) {
+                    alert('Zəhmət olmasa bütün xanaları doldurun');
+                    return;
+                  }
+                  createEvent(newEventTitle, newEventDate);
+                }} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Tədbir Adı</label>
+                    <input 
+                      type="text"
+                      placeholder="məs. Doğum günü şənliyi, İş yoldaşları ilə nahar"
+                      className={`w-full p-3 rounded-xl border-2 focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
+                      value={newEventTitle}
+                      onChange={(e) => setNewEventTitle(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Tarix və Vaxt</label>
+                    <input 
+                      type="datetime-local"
+                      className={`w-full p-3 rounded-xl border-2 focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
+                      value={newEventDate}
+                      onChange={(e) => setNewEventDate(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button 
+                    type="submit"
+                    className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition"
+                  >
+                    <Plus size={20} /> Tədbir Yarat
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Events List */}
+            <div className={`rounded-2xl p-6 border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Calendar size={20} className="text-purple-600" /> Tədirlər
+              </h3>
+              
+              {allEvents.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <Calendar size={48} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">Hələ heç bir tədbir yoxdur</p>
+                  {isAdmin && <p className="text-xs mt-1">Yuxarıda yeni tədbir yaradın</p>}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {allEvents.map((event) => (
+                    <div 
+                      key={event.id} 
+                      className={`p-4 rounded-xl border-2 hover:shadow-lg transition cursor-pointer ${darkMode ? 'bg-gray-700 border-gray-600 hover:border-blue-500' : 'bg-slate-50 border-slate-200 hover:border-blue-400'}`}
+                      onClick={() => enterEvent(event)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-bold text-lg">{event.title}</h4>
+                          <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
+                            <Calendar size={14} /> {new Date(event.event_date).toLocaleString('az-AZ', { dateStyle: 'medium', timeStyle: 'short' })}
+                          </p>
+                        </div>
+                        {isAdmin && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteEvent(event.id);
+                            }}
+                            className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Bill Management View - Show when event is selected */}
+        {currentEvent && (
+          <div className="space-y-6">
+            {/* Event Header with Back Button */}
+            <div className={`rounded-xl p-4 border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blue-200'}`}>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={exitEvent}
+                  className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white hover:bg-blue-100'} transition`}
+                >
+                  <ChevronRight size={20} className="transform rotate-180" />
+                </button>
+                <div className="flex-1">
+                  <h2 className="font-bold text-lg">{currentEvent.title}</h2>
+                  <p className="text-xs text-slate-500">
+                    {new Date(currentEvent.event_date).toLocaleString('az-AZ', { dateStyle: 'medium', timeStyle: 'short' })}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Navigation Tabs */}
+            <div className="flex bg-slate-200 p-1 rounded-xl gap-1">
+              <button 
+                onClick={() => setActiveTab('people')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'people' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
+              >
+                <Users size={16} /> İştirakçılar ({participants.length})
+              </button>
+              <button 
+                onClick={() => setActiveTab('items')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'items' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
+              >
+                <Receipt size={16} /> Məhsullar ({items.length})
+              </button>
+              <button 
+                onClick={() => setActiveTab('summary')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'summary' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
+              >
+                <Share2 size={16} /> Xülasə
+              </button>
+            </div>
 
         {/* Section: People Management */}
         {activeTab === 'people' && (
@@ -1285,102 +1483,8 @@ const App = () => {
             </button>
           </div>
         )}
-
-        {/* Section: Dashboard (Admin Only) */}
-        {activeTab === 'dashboard' && isAdmin && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-6 text-center">
-              <Calendar size={48} className="mx-auto text-blue-600 mb-3" />
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Tədbir İdarəsi</h2>
-              <p className="text-slate-600">Müxtəlif təbirləri idarə edin və hər biri üçün ayrıca hesabları saxlayın</p>
-            </div>
-
-            {/* Create New Event Form */}
-            <div className={`rounded-2xl p-6 border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <Plus size={20} className="text-blue-600" /> Yeni Tədbir Yarat
-              </h3>
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                alert('Tədbir funksiyası tezliklə əlavə ediləcək!');
-              }} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Tədbir Adı</label>
-                  <input 
-                    type="text"
-                    placeholder="məs. Doğum günü şənliyi, İş yoldaşları ilə nahar"
-                    className={`w-full p-3 rounded-xl border-2 focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
-                    value={newEventTitle}
-                    onChange={(e) => setNewEventTitle(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Tarix və Vaxt</label>
-                  <input 
-                    type="datetime-local"
-                    className={`w-full p-3 rounded-xl border-2 focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
-                    value={newEventDate}
-                    onChange={(e) => setNewEventDate(e.target.value)}
-                  />
-                </div>
-                <button 
-                  type="submit"
-                  className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition"
-                >
-                  <Plus size={20} /> Tədbir Yarat
-                </button>
-              </form>
-            </div>
-
-            {/* Events List */}
-            <div className={`rounded-2xl p-6 border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <Calendar size={20} className="text-purple-600" /> Mövcud Təbirlər
-              </h3>
-              
-              {allEvents.length === 0 ? (
-                <div className="text-center py-12 text-slate-400">
-                  <Calendar size={48} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">Hələ heç bir tədbir yoxdur</p>
-                  <p className="text-xs mt-1">Yuxarıda yeni tədbir yaradın</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {allEvents.map((event, idx) => (
-                    <div key={idx} className={`p-4 rounded-xl border-2 hover:shadow-md transition ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-bold text-lg">{event.title}</h4>
-                          <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
-                            <Calendar size={14} /> {new Date(event.date).toLocaleString('az-AZ')}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition">
-                            <Eye size={18} />
-                          </button>
-                          <button className="p-2 rounded-lg bg-purple-100 text-purple-600 hover:bg-purple-200 transition">
-                            <Edit size={18} />
-                          </button>
-                          <button className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition">
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Feature Preview */}
-            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
-              <h4 className="font-bold text-yellow-800 text-sm mb-2">🚧 Hazırlanır</h4>
-              <p className="text-xs text-yellow-700">
-                Tədbir sistemi hazırlanır. Tezliklə müxtəlif təbirləri yarada, hər biri üçün ayrıca qonaqlar və hesabları saxlaya biləcəksiniz.
-              </p>
-            </div>
-          </div>
+        
+        </div>
         )}
       </main>
 
@@ -1411,8 +1515,8 @@ const App = () => {
           </>
         )}
       </div>
-      </div>
-      )}
+    </div>
+    )}
     </div>
     </div>
   );

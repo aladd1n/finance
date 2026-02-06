@@ -280,6 +280,147 @@ export default {
         });
       }
 
+      // ========== EVENTS API ==========
+
+      // Get all events for current user
+      if (path === '/api/events' && request.method === 'GET') {
+        const result = await env.DB.prepare(
+          'SELECT * FROM events WHERE user_id = ? ORDER BY event_date DESC'
+        ).bind(currentUser.id).all();
+        
+        return new Response(JSON.stringify(result.results || []), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Create new event (ADMIN ONLY)
+      if (path === '/api/events' && request.method === 'POST') {
+        if (currentUser.role !== 'admin') {
+          return new Response(JSON.stringify({ error: 'Admin access required' }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        const body = await request.json();
+        const eventId = generateSessionId();
+        const now = new Date().toISOString();
+        
+        const eventData = {
+          id: eventId,
+          user_id: currentUser.id,
+          title: body.title,
+          event_date: body.event_date,
+          description: body.description || '',
+          created_at: now,
+          updated_at: now
+        };
+
+        await env.DB.prepare(
+          'INSERT INTO events (id, user_id, title, event_date, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        ).bind(
+          eventData.id,
+          eventData.user_id,
+          eventData.title,
+          eventData.event_date,
+          eventData.description,
+          eventData.created_at,
+          eventData.updated_at
+        ).run();
+
+        return new Response(JSON.stringify(eventData), {
+          status: 201,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Get, Update, or Delete specific event
+      const eventMatch = path.match(/^\/api\/events\/([^\/]+)$/);
+
+      if (eventMatch && request.method === 'GET') {
+        const eventId = eventMatch[1];
+        const result = await env.DB.prepare(
+          'SELECT * FROM events WHERE id = ? AND user_id = ?'
+        ).bind(eventId, currentUser.id).first();
+        
+        if (result) {
+          return new Response(JSON.stringify(result), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        } else {
+          return new Response(JSON.stringify({ error: 'Event not found' }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      }
+
+      if (eventMatch && request.method === 'PUT') {
+        if (currentUser.role !== 'admin') {
+          return new Response(JSON.stringify({ error: 'Admin access required' }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        const eventId = eventMatch[1];
+        const body = await request.json();
+        const now = new Date().toISOString();
+        
+        const result = await env.DB.prepare(
+          'UPDATE events SET title = ?, event_date = ?, description = ?, updated_at = ? WHERE id = ? AND user_id = ?'
+        ).bind(
+          body.title,
+          body.event_date,
+          body.description || '',
+          now,
+          eventId,
+          currentUser.id
+        ).run();
+
+        if (result.meta.changes > 0) {
+          const updated = await env.DB.prepare(
+            'SELECT * FROM events WHERE id = ?'
+          ).bind(eventId).first();
+          
+          return new Response(JSON.stringify(updated), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        } else {
+          return new Response(JSON.stringify({ error: 'Event not found' }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      }
+
+      if (eventMatch && request.method === 'DELETE') {
+        if (currentUser.role !== 'admin') {
+          return new Response(JSON.stringify({ error: 'Admin access required' }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        const eventId = eventMatch[1];
+        const result = await env.DB.prepare(
+          'DELETE FROM events WHERE id = ? AND user_id = ?'
+        ).bind(eventId, currentUser.id).run();
+
+        if (result.meta.changes > 0) {
+          return new Response(JSON.stringify({ message: 'Event deleted successfully' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        } else {
+          return new Response(JSON.stringify({ error: 'Event not found' }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      }
+
+      // ========== BILLS API ==========
+
       // Get all bills for current user
       if (path === '/api/bills' && request.method === 'GET') {
         const result = await env.DB.prepare(
@@ -428,7 +569,7 @@ export default {
       }
 
       // Receipt scanning with Cloud Vision API
-      if (pathname === '/api/scan-receipt' && request.method === 'POST') {
+      if (path === '/api/scan-receipt' && request.method === 'POST') {
         const body = await request.json();
         const { image } = body;
 
