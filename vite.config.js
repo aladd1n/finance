@@ -5,6 +5,20 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    port: 3000
+    port: 3000,
+    // Proxy API requests to local backend during development
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api')
+      }
+    }
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    // Optimize bundle
+    minify: 'terser'
   }
 })

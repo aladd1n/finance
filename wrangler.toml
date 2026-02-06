@@ -1,20 +1,16 @@
-name = "finance-app"
-type = "javascript"
-workers_dev = true
+# This configuration is for Cloudflare Pages (frontend only)
+# For the full setup, see DEPLOYMENT.md
 
-[env.development]
-route = "localhost:3001"
+name = "finance-frontend"
+type = "javascript"
+
+# Build settings for Cloudflare Pages
+[build]
+command = "npm run build"
+destination = "dist"
 
 [env.production]
-route = "your-domain.com/api/*"
+name = "finance-frontend-prod"
 
-# IMPORTANT: Set environment variables via `wrangler secret` or `.env` file
-# DO NOT commit sensitive data like MONGODB_URI with actual credentials
-# Use: wrangler secret put MONGODB_URI
-[env.development.vars]
-NODE_ENV = "development"
-PORT = "3001"
-
-[env.production.vars]
-NODE_ENV = "production"
-PORT = "3001"
+[env.staging]
+name = "finance-frontend-staging"
