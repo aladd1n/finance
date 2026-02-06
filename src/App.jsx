@@ -125,12 +125,12 @@ const App = () => {
     try {
       setSyncStatus('syncing');
       const response = billId 
-        ? await fetch(`${API_URL}/bills/${billId}`, {
+        ? await fetch(`${API_URL}/api/bills/${billId}`, {
             method: 'PUT',
             headers: getAuthHeaders(),
             body: JSON.stringify(billData)
           })
-        : await fetch(`${API_URL}/bills`, {
+        : await fetch(`${API_URL}/api/bills`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify(billData)
@@ -155,7 +155,7 @@ const App = () => {
 
   const loadBillFromServer = async (id) => {
     try {
-      const response = await fetch(`${API_URL}/bills/${id}`, {
+      const response = await fetch(`${API_URL}/api/bills/${id}`, {
         headers: getAuthHeaders()
       });
       if (response.ok) {
@@ -170,7 +170,7 @@ const App = () => {
 
   const loadLatestBillFromServer = async () => {
     try {
-      const response = await fetch(`${API_URL}/bills`, {
+      const response = await fetch(`${API_URL}/api/bills`, {
         headers: getAuthHeaders()
       });
       if (response.ok) {
