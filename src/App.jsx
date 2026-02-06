@@ -27,7 +27,7 @@ import {
   Camera
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://finance.psszdh.workers.dev/api';
 
 const App = () => {
   // --- State ---
@@ -123,36 +123,36 @@ const App = () => {
     return null;
   };
 
-  // --- Local Storage & Server Sync ---
+  // --- Server Sync (Primary) & Local Storage (Backup) ---
   useEffect(() => {
     const loadData = async () => {
-      // First try to load from localStorage
-      const saved = localStorage.getItem('billSplitterData');
-      let localData = null;
-      
-      if (saved) {
-        try {
-          localData = JSON.parse(saved);
-        } catch (e) {
-          console.error('Failed to load saved data:', e);
-        }
-      }
-
-      // Try to load from server
+      // Try to load from server first (primary source)
       const serverBill = await loadLatestBillFromServer();
       
-      // Use server data if available and more recent
-      const dataToUse = serverBill && (!localData || new Date(serverBill.updatedAt) > new Date(localData.timestamp))
-        ? serverBill
-        : localData;
-
-      if (dataToUse) {
-        if (dataToUse.participants) setParticipants(dataToUse.participants);
-        if (dataToUse.items) setItems(dataToUse.items);
-        if (dataToUse.taxPercent !== undefined) setTaxPercent(dataToUse.taxPercent);
-        if (dataToUse.tipPercent !== undefined) setTipPercent(dataToUse.tipPercent);
-        if (dataToUse.id) setBillId(dataToUse.id);
-        setLastSaved(new Date(dataToUse.timestamp || dataToUse.updatedAt));
+      if (serverBill) {
+        // Server data is available, use it
+        if (serverBill.participants) setParticipants(serverBill.participants);
+        if (serverBill.items) setItems(serverBill.items);
+        if (serverBill.taxPercent !== undefined) setTaxPercent(serverBill.taxPercent);
+        if (serverBill.tipPercent !== undefined) setTipPercent(serverBill.tipPercent);
+        if (serverBill.id) setBillId(serverBill.id);
+        setLastSaved(new Date(serverBill.updatedAt));
+      } else {
+        // Fallback to localStorage only if server is unavailable
+        try {
+          const saved = localStorage.getItem('billSplitterData');
+          if (saved) {
+            const localData = JSON.parse(saved);
+            if (localData.participants) setParticipants(localData.participants);
+            if (localData.items) setItems(localData.items);
+            if (localData.taxPercent !== undefined) setTaxPercent(localData.taxPercent);
+            if (localData.tipPercent !== undefined) setTipPercent(localData.tipPercent);
+            if (localData.id) setBillId(localData.id);
+            setLastSaved(new Date(localData.timestamp));
+          }
+        } catch (e) {
+          console.warn('LocalStorage not available or failed to load:', e);
+        }
       }
     };
 
@@ -173,11 +173,15 @@ const App = () => {
       timestamp: new Date().toISOString()
     };
     
-    // Save to localStorage
-    localStorage.setItem('billSplitterData', JSON.stringify(data));
+    // Save to localStorage as backup (optional, wrapped in try-catch)
+    try {
+      localStorage.setItem('billSplitterData', JSON.stringify(data));
+    } catch (e) {
+      console.warn('LocalStorage not available:', e);
+    }
     setLastSaved(new Date());
     
-    // Debounce server save
+    // Primary: Save to server (D1 database)
     const timeoutId = setTimeout(() => {
       saveBillToServer(data);
     }, 1000);
@@ -354,7 +358,11 @@ const App = () => {
       setTaxPercent(10);
       setTipPercent(15);
       setBillId(null);
-      localStorage.removeItem('billSplitterData');
+      try {
+        localStorage.removeItem('billSplitterData');
+      } catch (e) {
+        console.warn('LocalStorage not available:', e);
+      }
     }
   };
 
