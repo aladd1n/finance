@@ -23,7 +23,8 @@ import {
   DollarSign,
   Cloud,
   CloudOff,
-  RefreshCw
+  RefreshCw,
+  Camera
 } from 'lucide-react';
 
 const API_URL = 'http://localhost:3001/api';
