@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT,
   picture TEXT,
   google_id TEXT UNIQUE NOT NULL,
+  role TEXT DEFAULT 'user',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   last_login DATETIME DEFAULT CURRENT_TIMESTAMP
 );

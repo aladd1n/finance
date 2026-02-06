@@ -24,14 +24,22 @@ import {
   Cloud,
   CloudOff,
   RefreshCw,
-  Camera
+  Camera,
+  Moon,
+  Sun,
+  LogOut,
+  LogIn,
+  Shield
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://finance.psszdh.workers.dev/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://finance.psszdh.workers.dev';
 
 const App = () => {
   // --- State ---
   const appRef = useRef(null);
+  const [user, setUser] = useState(null);
+  const [sessionId, setSessionId] = useState(null);
+  const [darkMode, setDarkMode] = useState(false);
   const [billId, setBillId] = useState(null);
   const [syncStatus, setSyncStatus] = useState(null); // 'syncing', 'synced', 'error' or null
   const [participants, setParticipants] = useState([]);
@@ -46,12 +54,62 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('items'); // 'people', 'items', 'summary'
   const [lastSaved, setLastSaved] = useState(null);
 
+  const isAdmin = user?.role === 'admin';
+
   // --- API Functions ---
   const getAuthHeaders = () => ({
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    ...(sessionId && { 'Authorization': `Bearer ${sessionId}` })
   });
 
+  const handleLogin = async () => {
+    try {
+      const response = await fetch(`${API_URL}/auth/google`);
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+      setUser(null);
+      setSessionId(null);
+      localStorage.removeItem('sessionId');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  const checkSession = async (sid) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${sid}`
+        }
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error('Session check error:', error);
+      return false;
+    }
+  };
+
   const saveBillToServer = async (billData) => {
+    if (!user) return null;
     try {
       setSyncStatus('syncing');
       const response = billId 
@@ -115,8 +173,29 @@ const App = () => {
     return null;
   };
 
+  // --- Check authentication on mount ---
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionParam = params.get('session');
+    
+    if (sessionParam) {
+      // Clear session parameter from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setSessionId(sessionParam);
+      localStorage.setItem('sessionId', sessionParam);
+      checkSession(sessionParam);
+    } else {
+      const storedSession = localStorage.getItem('sessionId');
+      if (storedSession) {
+        setSessionId(storedSession);
+        checkSession(storedSession);
+      }
+    }
+  }, []);
+
   // --- Load from Cloudflare D1 Database ---
   useEffect(() => {
+    if (!user) return;
     const loadData = async () => {
       const serverBill = await loadLatestBillFromServer();
       
@@ -132,9 +211,12 @@ const App = () => {
     };
 
     loadData();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
+    // Only admins can auto-save bills
+    if (!isAdmin) return;
+    
     // Skip saving on initial mount (before data is loaded from server)
     if (billId === null && participants.length === 0 && items.length === 0) {
       return;
@@ -148,7 +230,7 @@ const App = () => {
       timestamp: new Date().toISOString()
     };
     
-    // Save to Cloudflare D1 database
+    // Save to Cloudflare D1 database (admin only)
     const timeoutId = setTimeout(() => {
       saveBillToServer(data);
       setLastSaved(new Date());
@@ -502,23 +584,63 @@ const App = () => {
   };
 
   return (
-    <div ref={appRef} className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-24">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10 p-4 shadow-sm">
-        <div className="max-w-2xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <Calculator className="text-blue-600" /> SplitIt Pro
-            </h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="text-xs text-slate-500 uppercase font-bold">Ümumi Hesab</div>
-              <div className="text-lg font-black text-blue-600">₼{totals.grandTotal.toFixed(2)}</div>
+    <div className={darkMode ? 'dark' : ''}>
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-slate-50 text-slate-900'} font-sans transition-colors duration-200`}>
+        {!user ? (
+          // Login Screen
+          <div className="min-h-screen flex items-center justify-center p-4">
+            <div className={`max-w-md w-full ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl p-8 text-center`}>
+              <Calculator className="w-16 h-16 mx-auto mb-4 text-blue-600" />
+              <h1 className="text-3xl font-bold mb-2">SplitIt Pro</h1>
+              <p className={`mb-8 ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>
+                Qrup xərclərini asanlıqla bölüşdürün
+              </p>
+              <button
+                onClick={handleLogin}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition"
+              >
+                <LogIn size={20} />
+                Google ilə daxil ol
+              </button>
             </div>
           </div>
-        </div>
-      </header>
+        ) : (
+        <div ref={appRef}>
+          {/* Header */}
+          <header className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-b'} sticky top-0 z-10 p-4 shadow-sm`}>
+            <div className="max-w-2xl mx-auto flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <h1 className="text-xl font-bold flex items-center gap-2">
+                  <Calculator className="text-blue-600" /> SplitIt Pro
+                </h1>
+                {isAdmin && (
+                  <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded-full flex items-center gap-1">
+                    <Shield size={12} /> Admin
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-slate-500'} uppercase font-bold`}>Ümumi Hesab</div>
+                  <div className="text-lg font-black text-blue-600">₼{totals.grandTotal.toFixed(2)}</div>
+                </div>
+                <button
+                  onClick={() => setDarkMode(!darkMode)}
+                  className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-200'} transition`}
+                  title={darkMode ? 'İşıqlı rejim' : 'Qaranlıq rejim'}
+                >
+                  {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-200'} transition`}
+                  title="Çıxış"
+                >
+                  <LogOut size={20} />
+                </button>
+              </div>
+            </div>
+          </header>
 
       <main className="max-w-2xl mx-auto p-4 space-y-6">
         
@@ -1055,6 +1177,9 @@ const App = () => {
           </>
         )}
       </div>
+      </div>
+      )}
+    </div>
     </div>
   );
 };
