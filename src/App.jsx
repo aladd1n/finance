@@ -54,6 +54,9 @@ const App = () => {
   
   const [items, setItems] = useState([]);
   const [itemsExpanded, setItemsExpanded] = useState(true);
+  const [receiptScanning, setReceiptScanning] = useState(false);
+  const [extractedItems, setExtractedItems] = useState([]);
+  const [showExtractedPreview, setShowExtractedPreview] = useState(false);
 
   const [taxPercent, setTaxPercent] = useState(10);
   const [tipPercent, setTipPercent] = useState(15);
@@ -965,21 +968,71 @@ const App = () => {
             )}
 
             {isAdmin && (
-            <div className="flex gap-2">
-              <button 
-                onClick={addItem}
-                className="flex-1 py-4 border-2 border-dashed border-slate-300 rounded-2xl text-slate-500 font-medium hover:border-blue-400 hover:text-blue-500 transition flex items-center justify-center gap-2"
-              >
-                <Plus size={18} /> Yeni Məhsul Əlavə Et
-              </button>
-              {items.length > 0 && (
-                <button 
-                  onClick={clearAllItems}
-                  className="bg-red-600 text-white px-6 py-4 rounded-2xl hover:bg-red-700 transition flex items-center gap-2"
-                >
-                  <Trash size={18} /> Hamısını Təmizlə
-                </button>
+            <div className="space-y-4">
+              {/* Receipt Scanner */}
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="font-bold text-purple-900 flex items-center gap-2">
+                      <Camera size={18} /> Qəbz Skaner
+                    </h3>
+                    <p className="text-xs text-purple-600 mt-1">Qəbz şəklini yükləyin və məhsullar avtomatik əlavə edilsin</p>
+                  </div>
+                </div>
+                <label className="flex items-center justify-center gap-2 py-3 px-4 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition cursor-pointer font-medium">
+                  <Camera size={18} /> {receiptScanning ? 'Yüklənir...' : 'Qəbz Şəkli Seç'}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleReceiptUpload}
+                    className="hidden"
+                    disabled={receiptScanning}
+                  />
+                </label>
+              </div>
+
+              {/* Extracted Items Preview */}
+              {showExtractedPreview && extractedItems.length > 0 && (
+                <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-green-900">Tapılan Məhsullar ({extractedItems.length})</h3>
+                    <button onClick={() => setShowExtractedPreview(false)} className="text-green-600 hover:text-green-800">
+                      <XCircle size={20} />
+                    </button>
+                  </div>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {extractedItems.map((item, idx) => (
+                      <div key={idx} className="bg-white rounded-lg p-3 flex justify-between items-center">
+                        <span className="font-medium text-gray-800">{item.name}</span>
+                        <span className="text-green-700 font-bold">₼{item.price}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button 
+                    onClick={addExtractedItems}
+                    className="w-full py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition font-medium flex items-center justify-center gap-2"
+                  >
+                    <Plus size={18} /> Hamısını Əlavə Et
+                  </button>
+                </div>
               )}
+
+              <div className="flex gap-2">
+                <button 
+                  onClick={addItem}
+                  className="flex-1 py-4 border-2 border-dashed border-slate-300 rounded-2xl text-slate-500 font-medium hover:border-blue-400 hover:text-blue-500 transition flex items-center justify-center gap-2"
+                >
+                  <Plus size={18} /> Yeni Məhsul Əlavə Et
+                </button>
+                {items.length > 0 && (
+                  <button 
+                    onClick={clearAllItems}
+                    className="bg-red-600 text-white px-6 py-4 rounded-2xl hover:bg-red-700 transition flex items-center gap-2"
+                  >
+                    <Trash size={18} /> Hamısını Təmizlə
+                  </button>
+                )}
+              </div>
             </div>
             )}
           </div>

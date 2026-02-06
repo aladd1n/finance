@@ -55,6 +55,75 @@ async function exchangeGoogleCode(code, env) {
   return await userInfoResponse.json();
 }
 
+// Parse receipt text to extract items and prices
+function parseReceiptText(text) {
+  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  const items = [];
+  
+  // Common receipt patterns:
+  // 1. Item name followed by price: "Coffee 12.50" or "Coffee    12.50"
+  // 2. Item name on one line, price on next: "Coffee\n12.50"
+  // 3. Item with quantity: "2x Coffee 25.00"
+  
+  const pricePattern = /(\d+[.,]\d{2}|\d+)/g; // Matches prices like 12.50 or 12,50 or 12
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Skip common receipt headers/footers
+    if (
+      line.toLowerCase().includes('total') ||
+      line.toLowerCase().includes('subtotal') ||
+      line.toLowerCase().includes('tax') ||
+      line.toLowerCase().includes('tip') ||
+      line.toLowerCase().includes('change') ||
+      line.toLowerCase().includes('cash') ||
+      line.toLowerCase().includes('card') ||
+      line.toLowerCase().includes('thank you') ||
+      line.toLowerCase().includes('receipt') ||
+      line.match(/^\d{2}\/\d{2}\/\d{4}/) || // Date pattern
+      line.match(/^\d{2}:\d{2}/) // Time pattern
+    ) {
+      continue;
+    }
+    
+    // Try to find item name and price on same line
+    const matches = line.match(/^(.+?)\s+(\d+[.,]\d{2}|\d+)$/);
+    if (matches) {
+      const name = matches[1].replace(/^\d+x?\s*/i, '').trim(); // Remove quantity prefix
+      const price = matches[2].replace(',', '.');
+      
+      if (name.length > 2 && parseFloat(price) > 0) {
+        items.push({
+          name: name,
+          price: parseFloat(price).toFixed(2)
+        });
+      }
+      continue;
+    }
+    
+    // Try to find price on the current line and item name from previous lines
+    const priceMatches = line.match(pricePattern);
+    if (priceMatches && i > 0) {
+      const prevLine = lines[i - 1];
+      // Check if previous line doesn't contain a price (to avoid duplicates)
+      if (!prevLine.match(pricePattern) && prevLine.length > 2) {
+        const price = priceMatches[0].replace(',', '.');
+        const name = prevLine.replace(/^\d+x?\s*/i, '').trim();
+        
+        if (parseFloat(price) > 0) {
+          items.push({
+            name: name,
+            price: parseFloat(price).toFixed(2)
+          });
+        }
+      }
+    }
+  }
+  
+  return items;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -353,6 +422,74 @@ export default {
         } else {
           return new Response(JSON.stringify({ error: 'Bill not found' }), {
             status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      }
+
+      // Receipt scanning with Cloud Vision API
+      if (pathname === '/api/scan-receipt' && request.method === 'POST') {
+        const body = await request.json();
+        const { image } = body;
+
+        if (!image) {
+          return new Response(JSON.stringify({ error: 'Image required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        try {
+          // Call Google Cloud Vision API
+          const visionApiKey = env.GOOGLE_VISION_API_KEY;
+          if (!visionApiKey) {
+            return new Response(JSON.stringify({ error: 'Vision API key not configured' }), {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+
+          const visionResponse = await fetch(
+            `https://vision.googleapis.com/v1/images:annotate?key=${visionApiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                requests: [{
+                  image: { content: image },
+                  features: [{ type: 'TEXT_DETECTION' }]
+                }]
+              })
+            }
+          );
+
+          if (!visionResponse.ok) {
+            throw new Error('Vision API request failed');
+          }
+
+          const visionData = await visionResponse.json();
+          const textAnnotations = visionData.responses[0]?.textAnnotations;
+
+          if (!textAnnotations || textAnnotations.length === 0) {
+            return new Response(JSON.stringify({ items: [] }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+
+          // Extract full text
+          const fullText = textAnnotations[0].description;
+          
+          // Parse text to find items and prices
+          const items = parseReceiptText(fullText);
+
+          return new Response(JSON.stringify({ items }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+
+        } catch (error) {
+          console.error('Vision API error:', error);
+          return new Response(JSON.stringify({ error: 'Failed to process receipt' }), {
+            status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
