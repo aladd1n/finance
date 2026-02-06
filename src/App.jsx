@@ -34,20 +34,12 @@ const App = () => {
   const appRef = useRef(null);
   const [billId, setBillId] = useState(null);
   const [syncStatus, setSyncStatus] = useState(null); // 'syncing', 'synced', 'error' or null
-  const [participants, setParticipants] = useState([
-    { id: '1', name: 'Alex', paid: false, amountPaid: 0 },
-    { id: '2', name: 'Jordan', paid: false, amountPaid: 0 },
-    { id: '3', name: 'Taylor', paid: false, amountPaid: 0 }
-  ]);
+  const [participants, setParticipants] = useState([]);
   const [newName, setNewName] = useState('');
   const [csvInput, setCsvInput] = useState('');
   const [showCsvImport, setShowCsvImport] = useState(false);
   
-  const [items, setItems] = useState([
-    { id: 'i1', name: 'Craft Beer Tray', price: 120, category: 'alcohol', participants: ['1', '2'], paidBy: { '1': 120 } },
-    { id: 'i2', name: 'Green Tea Pot', price: 15, category: 'tea', participants: ['3'], paidBy: { '3': 15 } },
-    { id: 'i3', name: 'Platter of Food', price: 200, category: 'food', participants: ['1', '2', '3'], paidBy: { '1': 200 } }
-  ]);
+  const [items, setItems] = useState([]);
 
   const [taxPercent, setTaxPercent] = useState(10);
   const [tipPercent, setTipPercent] = useState(15);
@@ -143,8 +135,8 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    // Skip saving on initial mount
-    if (participants.length === 0 && items.length === 0) {
+    // Skip saving on initial mount (before data is loaded from server)
+    if (billId === null && participants.length === 0 && items.length === 0) {
       return;
     }
 
@@ -163,7 +155,7 @@ const App = () => {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [participants, items, taxPercent, tipPercent, billId]);
+  }, [participants, items, taxPercent, tipPercent]);
 
   // --- Logic ---
   
@@ -334,11 +326,15 @@ const App = () => {
       setTaxPercent(10);
       setTipPercent(15);
       setBillId(null);
-      try {
-        localStorage.removeItem('billSplitterData');
-      } catch (e) {
-        console.warn('LocalStorage not available:', e);
-      }
+      // Clear from server by saving empty state
+      const emptyData = {
+        participants: [],
+        items: [],
+        taxPercent: 10,
+        tipPercent: 15,
+        timestamp: new Date().toISOString()
+      };
+      saveBillToServer(emptyData);
     }
   };
 
