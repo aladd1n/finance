@@ -1,9 +1,6 @@
-# This file is not used for Cloudflare Pages deployment
-# Cloudflare Pages auto-deploys from your Git repository
-# 
-# For backend deployment (Railway/Render), use environment variables:
-# - MONGODB_URI
-# - NODE_ENV
-# - PORT
-#
-# No manual deploy command needed - just push to main branch!
+name = "finance"
+compatibility_date = "2026-02-06"
+
+# Static assets configuration for Cloudflare Pages
+[assets]
+directory = "./dist"
