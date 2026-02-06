@@ -232,7 +232,7 @@ const App = () => {
 
   const updateAmountPaid = (id, amount) => {
     setParticipants(participants.map(p => 
-      p.id === id ? { ...p, amountPaid: parseFloat(amount) || 0 } : p
+      p.id === id ? { ...p, amountPaid: amount === '' ? 0 : parseFloat(amount) || 0 } : p
     ));
   };
 
@@ -634,7 +634,7 @@ const App = () => {
                         step="0.01"
                         min="0"
                         className="w-full pl-6 pr-2 py-1.5 bg-slate-50 rounded-lg border text-sm"
-                        value={p.amountPaid || ''}
+                        value={p.amountPaid ?? ''}
                         onChange={(e) => updateAmountPaid(p.id, e.target.value)}
                         placeholder="0.00"
                       />
