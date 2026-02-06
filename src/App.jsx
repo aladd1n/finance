@@ -375,6 +375,11 @@ const App = () => {
     }));
   };
 
+  // Helper function to calculate total amount paid
+  const getTotalPaid = (paidByObj) => {
+    return Object.values(paidByObj || {}).reduce((sum, amt) => sum + Number(amt), 0);
+  };
+
   const togglePaidBy = (itemId, personId) => {
     setItems(items.map(item => {
       if (item.id !== itemId) return item;
@@ -387,11 +392,11 @@ const App = () => {
         return { ...item, paidBy: rest };
       } else {
         // Add this person as a payer with default amount (equal split of remaining)
-        const currentTotal = Object.values(paidByObj).reduce((sum, amt) => sum + Number(amt), 0);
+        const currentTotal = getTotalPaid(paidByObj);
         const remaining = Math.max(0, Number(item.price) - currentTotal);
         return { 
           ...item, 
-          paidBy: { ...paidByObj, [personId]: remaining > 0 ? remaining : 0 } 
+          paidBy: { ...paidByObj, [personId]: remaining } 
         };
       }
     }));
@@ -816,7 +821,7 @@ const App = () => {
                                 type="number"
                                 step="0.01"
                                 min="0"
-                                value={amount || ''}
+                                value={amount === 0 ? '0' : amount || ''}
                                 onChange={(e) => updatePaidAmount(item.id, p.id, e.target.value)}
                                 onClick={(e) => e.stopPropagation()}
                                 className="w-20 px-2 py-1 text-sm border border-emerald-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50"
@@ -830,7 +835,7 @@ const App = () => {
                   </div>
                   {Object.keys(item.paidBy || {}).length > 0 && (
                     <div className="mt-3 text-[10px] text-slate-400 text-right italic">
-                      Cəmi ödənildi: ₼{Object.values(item.paidBy || {}).reduce((sum, amt) => sum + Number(amt), 0).toFixed(2)}
+                      Cəmi ödənildi: ₼{getTotalPaid(item.paidBy).toFixed(2)}
                     </div>
                   )}
                 </div>
