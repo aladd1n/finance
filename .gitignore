@@ -10,6 +10,10 @@ build/
 .env
 .env.local
 .env.*.local
+.dev.vars
+
+# Wrangler
+.wrangler/
 
 # Data storage
 server/data/bills.json

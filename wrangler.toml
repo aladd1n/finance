@@ -1,9 +1,20 @@
 name = "finance"
 compatibility_date = "2026-02-06"
-main = "worker.js"
+main = "worker-auth.js"
 
 # Cloudflare D1 Database binding
 [[d1_databases]]
 binding = "DB"
 database_name = "finance-db"
 database_id = "14f769e0-cf32-4432-b641-0f02509090dc"
+
+# Environment variables (set via wrangler secret)
+# These should NOT be committed to git
+# Use: wrangler secret put GOOGLE_CLIENT_ID
+# Use: wrangler secret put GOOGLE_CLIENT_SECRET
+# 
+# For development, create .dev.vars file:
+# GOOGLE_CLIENT_ID=your-client-id
+# GOOGLE_CLIENT_SECRET=your-client-secret
+# REDIRECT_URI=http://localhost:8787/auth/callback
+# FRONTEND_URL=http://localhost:3000
