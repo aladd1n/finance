@@ -29,7 +29,10 @@ import {
   Sun,
   LogOut,
   LogIn,
-  Shield
+  Shield,
+  Calendar,
+  Edit,
+  Eye
 } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://finance.psszdh.workers.dev';
@@ -333,6 +336,57 @@ const App = () => {
       name: item.name + ' (Copy)'
     };
     setItems([...items, newItem]);
+  };
+
+  // Receipt scanning function
+  const handleReceiptUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setReceiptScanning(true);
+    setExtractedItems([]);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64Image = event.target.result.split(',')[1];
+        
+        const response = await fetch(`${API_URL}/api/scan-receipt`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ image: base64Image })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to scan receipt');
+        }
+
+        const data = await response.json();
+        setExtractedItems(data.items || []);
+        setShowExtractedPreview(true);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Receipt scanning error:', error);
+      alert('Qəbzi skan edərkən xəta baş verdi');
+    } finally {
+      setReceiptScanning(false);
+    }
+  };
+
+  // Add extracted items to the list
+  const addExtractedItems = () => {
+    const newItems = extractedItems.map(item => ({
+      id: Math.random().toString(36).substr(2, 9),
+      name: item.name,
+      price: parseFloat(item.price) || 0,
+      category: 'food',
+      participants: [],
+      paidBy: {}
+    }));
+    setItems([...items, ...newItems]);
+    setShowExtractedPreview(false);
+    setExtractedItems([]);
   };
 
   const exportToCSV = () => {
@@ -655,6 +709,14 @@ const App = () => {
         
         {/* Navigation Tabs */}
         <div className="flex bg-slate-200 p-1 rounded-xl gap-1">
+          {isAdmin && (
+            <button 
+              onClick={() => setActiveTab('dashboard')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'dashboard' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
+            >
+              <Calendar size={16} /> Tədbirlər
+            </button>
+          )}
           <button 
             onClick={() => setActiveTab('people')}
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'people' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
@@ -1221,6 +1283,103 @@ const App = () => {
             >
               <Trash size={18} /> Hər Şeyi Sıfırla
             </button>
+          </div>
+        )}
+
+        {/* Section: Dashboard (Admin Only) */}
+        {activeTab === 'dashboard' && isAdmin && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-6 text-center">
+              <Calendar size={48} className="mx-auto text-blue-600 mb-3" />
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">Tədbir İdarəsi</h2>
+              <p className="text-slate-600">Müxtəlif təbirləri idarə edin və hər biri üçün ayrıca hesabları saxlayın</p>
+            </div>
+
+            {/* Create New Event Form */}
+            <div className={`rounded-2xl p-6 border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Plus size={20} className="text-blue-600" /> Yeni Tədbir Yarat
+              </h3>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                alert('Tədbir funksiyası tezliklə əlavə ediləcək!');
+              }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Tədbir Adı</label>
+                  <input 
+                    type="text"
+                    placeholder="məs. Doğum günü şənliyi, İş yoldaşları ilə nahar"
+                    className={`w-full p-3 rounded-xl border-2 focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
+                    value={newEventTitle}
+                    onChange={(e) => setNewEventTitle(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Tarix və Vaxt</label>
+                  <input 
+                    type="datetime-local"
+                    className={`w-full p-3 rounded-xl border-2 focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
+                    value={newEventDate}
+                    onChange={(e) => setNewEventDate(e.target.value)}
+                  />
+                </div>
+                <button 
+                  type="submit"
+                  className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition"
+                >
+                  <Plus size={20} /> Tədbir Yarat
+                </button>
+              </form>
+            </div>
+
+            {/* Events List */}
+            <div className={`rounded-2xl p-6 border-2 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Calendar size={20} className="text-purple-600" /> Mövcud Təbirlər
+              </h3>
+              
+              {allEvents.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <Calendar size={48} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">Hələ heç bir tədbir yoxdur</p>
+                  <p className="text-xs mt-1">Yuxarıda yeni tədbir yaradın</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {allEvents.map((event, idx) => (
+                    <div key={idx} className={`p-4 rounded-xl border-2 hover:shadow-md transition ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-bold text-lg">{event.title}</h4>
+                          <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
+                            <Calendar size={14} /> {new Date(event.date).toLocaleString('az-AZ')}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition">
+                            <Eye size={18} />
+                          </button>
+                          <button className="p-2 rounded-lg bg-purple-100 text-purple-600 hover:bg-purple-200 transition">
+                            <Edit size={18} />
+                          </button>
+                          <button className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition">
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Feature Preview */}
+            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
+              <h4 className="font-bold text-yellow-800 text-sm mb-2">🚧 Hazırlanır</h4>
+              <p className="text-xs text-yellow-700">
+                Tədbir sistemi hazırlanır. Tezliklə müxtəlif təbirləri yarada, hər biri üçün ayrıca qonaqlar və hesabları saxlaya biləcəksiniz.
+              </p>
+            </div>
           </div>
         )}
       </main>

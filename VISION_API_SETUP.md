@@ -12,7 +12,7 @@ This guide explains how to enable and configure Google Cloud Vision API for rece
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Select your project (same one used for OAuth)
 3. Navigate to **APIs & Services > Library**
-4. Search for "Cloud Vision API"
+4. Search for "ho"
 5. Click on "Cloud Vision API"
 6. Click **Enable** button
 
