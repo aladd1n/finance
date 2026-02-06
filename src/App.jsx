@@ -970,13 +970,15 @@ const App = () => {
                 className={`flex-1 p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
+                disabled={!isAdmin}
               />
-              <button type="submit" className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition">
+              <button type="submit" className="bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled={!isAdmin}>
                 <Plus />
               </button>
             </form>
 
             {/* Bulk Actions */}
+            {isAdmin && (
             <div className="flex gap-2">
               <button 
                 onClick={() => setShowCsvImport(!showCsvImport)}
@@ -993,6 +995,7 @@ const App = () => {
                 </button>
               )}
             </div>
+            )}
 
             {/* CSV Import Section */}
             {showCsvImport && (
@@ -1038,9 +1041,11 @@ const App = () => {
                         {p.paid && <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Ödənildi</span>}
                       </div>
                     </div>
+                    {isAdmin && (
                     <button onClick={() => removeParticipant(p.id)} className="text-slate-400 hover:text-red-500 p-1 transition">
                       <Trash2 size={18} />
                     </button>
+                    )}
                   </div>
                   
                   {/* Payment Amount Input */}
@@ -1117,6 +1122,7 @@ const App = () => {
                       </select>
                     </div>
                   </div>
+                  {isAdmin && (
                   <div className="flex flex-col gap-2">
                     <button 
                       onClick={() => duplicateItem(item)} 
@@ -1133,6 +1139,7 @@ const App = () => {
                       <Trash2 size={18} />
                     </button>
                   </div>
+                  )}
                 </div>
 
                 <div className="pt-2">
@@ -1140,12 +1147,14 @@ const App = () => {
                     <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
                       <Users size={12}/> İştirak ({item.participants.length})
                     </h4>
+                    {isAdmin && (
                     <button 
                       onClick={() => updateItem(item.id, 'participants', item.participants.length === participants.length ? [] : participants.map(p => p.id))}
                       className="text-xs text-blue-600 font-medium"
                     >
                       {item.participants.length === participants.length ? 'Hamısını Təmizlə' : 'Hamısını Seç'}
                     </button>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {participants.map(p => {
@@ -1154,8 +1163,10 @@ const App = () => {
                         <button
                           key={p.id}
                           onClick={() => toggleParticipation(item.id, p.id)}
+                          disabled={!isAdmin}
                           className={`px-3 py-1.5 rounded-full text-xs font-medium border transition flex items-center gap-1.5
                             ${isActive ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' : 'bg-white border-slate-200 text-slate-500'}
+                            ${!isAdmin ? 'opacity-60 cursor-not-allowed' : ''}
                           `}
                         >
                           <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-blue-500' : 'bg-slate-300'}`} />
@@ -1177,6 +1188,7 @@ const App = () => {
                     <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
                       <DollarSign size={12}/> Kim Ödədi? ({Object.keys(item.paidBy || {}).length})
                     </h4>
+                    {isAdmin && (
                     <button 
                       onClick={() => {
                         const allPaid = Object.keys(item.paidBy || {}).length === participants.length;
@@ -1196,6 +1208,7 @@ const App = () => {
                     >
                       {Object.keys(item.paidBy || {}).length === participants.length ? 'Hamısını Təmizlə' : 'Hamısını Seç'}
                     </button>
+                    )}
                   </div>
                   <div className="space-y-2">
                     {participants.map(p => {
@@ -1207,8 +1220,10 @@ const App = () => {
                         <div key={p.id} className="flex items-center gap-2">
                           <button
                             onClick={() => togglePaidBy(item.id, p.id)}
+                            disabled={!isAdmin}
                             className={`flex-shrink-0 w-5 h-5 rounded-full border-2 transition flex items-center justify-center
                               ${isPayer ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-300'}
+                              ${!isAdmin ? 'opacity-60 cursor-not-allowed' : ''}
                             `}
                           >
                             {isPayer && (
@@ -1230,6 +1245,7 @@ const App = () => {
                                 onClick={(e) => e.stopPropagation()}
                                 className="w-20 px-2 py-1 text-sm border border-emerald-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50"
                                 placeholder="0.00"
+                                disabled={!isAdmin}
                               />
                             </div>
                           )}
@@ -1298,6 +1314,7 @@ const App = () => {
                 </div>
               )}
 
+              {isAdmin && (
               <div className="flex gap-2">
                 <button 
                   onClick={addItem}
@@ -1314,6 +1331,7 @@ const App = () => {
                   </button>
                 )}
               </div>
+              )}
             </div>
             )}
           </div>
@@ -1332,6 +1350,7 @@ const App = () => {
                   className="w-full p-2 bg-slate-50 border rounded-lg"
                   value={taxPercent}
                   onChange={(e) => setTaxPercent(e.target.value)}
+                  disabled={!isAdmin}
                 />
               </div>
               <div className="space-y-1">
@@ -1341,6 +1360,7 @@ const App = () => {
                   className="w-full p-2 bg-slate-50 border rounded-lg"
                   value={tipPercent}
                   onChange={(e) => setTipPercent(e.target.value)}
+                  disabled={!isAdmin}
                 />
               </div>
             </div>
