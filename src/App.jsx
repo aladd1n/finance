@@ -33,7 +33,7 @@ const App = () => {
   // --- State ---
   const appRef = useRef(null);
   const [billId, setBillId] = useState(null);
-  const [syncStatus, setSyncStatus] = useState('local'); // 'local', 'syncing', 'synced', 'error'
+  const [syncStatus, setSyncStatus] = useState(null); // 'syncing', 'synced', 'error' or null
   const [participants, setParticipants] = useState([
     { id: '1', name: 'Alex', paid: false, amountPaid: 0 },
     { id: '2', name: 'Jordan', paid: false, amountPaid: 0 },
@@ -78,15 +78,15 @@ const App = () => {
         const savedBill = await response.json();
         if (!billId) setBillId(savedBill.id);
         setSyncStatus('synced');
-        setTimeout(() => setSyncStatus('local'), 2000);
+        setTimeout(() => setSyncStatus(null), 2000);
         return savedBill;
       } else {
-        throw new Error('Server save failed');
+        throw new Error('Cloudflare D1 save failed');
       }
     } catch (error) {
-      console.error('Failed to save to server:', error);
+      console.error('Failed to save to Cloudflare D1:', error);
       setSyncStatus('error');
-      setTimeout(() => setSyncStatus('local'), 3000);
+      setTimeout(() => setSyncStatus(null), 3000);
       return null;
     }
   };
@@ -101,7 +101,7 @@ const App = () => {
         return bill;
       }
     } catch (error) {
-      console.error('Failed to load from server:', error);
+      console.error('Failed to load from Cloudflare D1:', error);
     }
     return null;
   };
@@ -118,41 +118,24 @@ const App = () => {
         }
       }
     } catch (error) {
-      console.error('Failed to load latest bill:', error);
+      console.error('Failed to load latest bill from Cloudflare D1:', error);
     }
     return null;
   };
 
-  // --- Server Sync (Primary) & Local Storage (Backup) ---
+  // --- Load from Cloudflare D1 Database ---
   useEffect(() => {
     const loadData = async () => {
-      // Try to load from server first (primary source)
       const serverBill = await loadLatestBillFromServer();
       
       if (serverBill) {
-        // Server data is available, use it
         if (serverBill.participants) setParticipants(serverBill.participants);
         if (serverBill.items) setItems(serverBill.items);
         if (serverBill.taxPercent !== undefined) setTaxPercent(serverBill.taxPercent);
         if (serverBill.tipPercent !== undefined) setTipPercent(serverBill.tipPercent);
         if (serverBill.id) setBillId(serverBill.id);
         setLastSaved(new Date(serverBill.updatedAt));
-      } else {
-        // Fallback to localStorage only if server is unavailable
-        try {
-          const saved = localStorage.getItem('billSplitterData');
-          if (saved) {
-            const localData = JSON.parse(saved);
-            if (localData.participants) setParticipants(localData.participants);
-            if (localData.items) setItems(localData.items);
-            if (localData.taxPercent !== undefined) setTaxPercent(localData.taxPercent);
-            if (localData.tipPercent !== undefined) setTipPercent(localData.tipPercent);
-            if (localData.id) setBillId(localData.id);
-            setLastSaved(new Date(localData.timestamp));
-          }
-        } catch (e) {
-          console.warn('LocalStorage not available or failed to load:', e);
-        }
+        setSyncStatus('synced');
       }
     };
 
@@ -173,17 +156,10 @@ const App = () => {
       timestamp: new Date().toISOString()
     };
     
-    // Save to localStorage as backup (optional, wrapped in try-catch)
-    try {
-      localStorage.setItem('billSplitterData', JSON.stringify(data));
-    } catch (e) {
-      console.warn('LocalStorage not available:', e);
-    }
-    setLastSaved(new Date());
-    
-    // Primary: Save to server (D1 database)
+    // Save to Cloudflare D1 database
     const timeoutId = setTimeout(() => {
       saveBillToServer(data);
+      setLastSaved(new Date());
     }, 1000);
 
     return () => clearTimeout(timeoutId);
@@ -1061,25 +1037,25 @@ const App = () => {
         {syncStatus === 'syncing' && (
           <>
             <RefreshCw size={14} className="animate-spin text-blue-500" />
-            <span>Server-ə göndərilir...</span>
+            <span>Cloudflare D1-ə göndərilir...</span>
           </>
         )}
         {syncStatus === 'synced' && (
           <>
             <Cloud size={14} className="text-green-500" />
-            <span>Server-ə yadda saxlanıldı</span>
+            <span>Cloudflare D1-də saxlanıldı ✓</span>
           </>
         )}
         {syncStatus === 'error' && (
           <>
             <CloudOff size={14} className="text-red-500" />
-            <span>Server xətası (lokal yadda saxlanıldı)</span>
+            <span>Cloudflare D1 xətası</span>
           </>
         )}
-        {syncStatus === 'local' && (
+        {(syncStatus === 'local' || !syncStatus) && (
           <>
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            {lastSaved ? `Son yadda saxlanma: ${lastSaved.toLocaleTimeString()}` : 'Avtomatik yadda saxlanılır...'}
+            <Cloud size={14} className="text-blue-500" />
+            {lastSaved ? `Son saxlanma: ${lastSaved.toLocaleTimeString()}` : 'Avtomatik saxlanır...'}
           </>
         )}
       </div>

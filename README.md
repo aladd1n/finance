@@ -1,6 +1,6 @@
 # Finance - Bill Splitter Application
 
-A modern bill splitting application with server-side data persistence, built with React and Express.
+A modern bill splitting application built with React and Cloudflare Workers with D1 database.
 
 ## 🌟 Features
 
@@ -8,8 +8,7 @@ A modern bill splitting application with server-side data persistence, built wit
 - **📊 Məhsul İdarəetməsi**: Məhsulları əlavə edin və kimin hansı məhsula iştirak etdiyini seçin
 - **💰 Manat Valyutası**: Azərbaycan manatı (₼) ilə hesablamalar
 - **🌐 Azərbaycan Dili**: Tam Azərbaycan dilində interfeys
-- **☁️ Server Sinxronizasiyası**: Avtomatik server-ə yadda saxlama
-- **💾 Lokal Yedəkləmə**: Server olmadan da işləyir
+- **☁️ Cloudflare D1 Database**: Avtomatik Cloudflare D1-ə yadda saxlama
 - **📸 Şəkil İxracı**: Hesabı şəkil kimi yükləyin
 - **📄 CSV/JSON İxrac**: Məlumatları müxtəlif formatlarda ixrac edin
 - **🔄 Avtomatik Yadda Saxlama**: Dəyişiklikləri avtomatik saxlayır
@@ -33,30 +32,19 @@ npm install
 
 ### Running the Application
 
-**Option 1: Easy Start (Recommended)**
+**Development Mode:**
 ```bash
-npm run dev:all
-```
-This starts both backend (port 3001) and frontend (port 5173).
-
-**Option 2: Using startup script**
-```bash
-./start.sh
-```
-
-**Option 3: Run separately**
-
-Terminal 1 - Backend:
-```bash
-npm run server
-```
-
-Terminal 2 - Frontend:
-```bash
+# Start Vite dev server (uses Cloudflare Workers API)
 npm run dev
 ```
 
-Then open http://localhost:5173 in your browser.
+**Local Cloudflare Worker Development:**
+```bash
+# Run Cloudflare Worker locally with Wrangler
+npm run worker:dev
+```
+
+Then open http://localhost:3000 in your browser.
 
 ## 📁 Project Structure
 
@@ -65,38 +53,38 @@ finance/
 ├── src/
 │   ├── App.jsx          # Main React application
 │   └── main.jsx         # React entry point
-├── server/
-│   ├── index.js         # Express server
-│   └── data/
-│       └── bills.json   # Data storage
+├── worker-auth.js       # Cloudflare Worker with authentication
+├── worker.js            # Cloudflare Worker (simple version)
+├── wrangler.toml        # Cloudflare configuration
+├── schema.sql           # D1 database schema
 ├── index.html
 ├── package.json
 ├── vite.config.js
-├── SERVER_SETUP.md      # Detailed server documentation
+├── D1_SETUP.md          # D1 database setup guide
 └── README.md
 ```
 
 ## 🔧 Configuration
 
 ### API URL
-Default: `http://localhost:3001/api`
+Default: `https://finance.psszdh.workers.dev/api`
 
-To change, edit in `src/App.jsx`:
+For local development, set in `src/App.jsx`:
 ```javascript
-const API_URL = 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://finance.psszdh.workers.dev/api';
 ```
 
-### Server Port
-Default: `3001`
+### Cloudflare D1 Setup
+See [D1_SETUP.md](./D1_SETUP.md) for detailed database setup instructions.
 
-To change, edit in `server/index.js` or set environment variable:
+## 📡 Deployment
+
+The application automatically deploys to Cloudflare when you push to GitHub.
+
+**Manual deployment:**
 ```bash
-PORT=8080 npm run server
+npm run worker:deploy
 ```
-
-## 📡 API Endpoints
-
-See [SERVER_SETUP.md](./SERVER_SETUP.md) for detailed API documentation.
 
 Quick reference:
 - `GET /api/bills` - Get all bills
