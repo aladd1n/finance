@@ -44,9 +44,9 @@ const App = () => {
   const [showCsvImport, setShowCsvImport] = useState(false);
   
   const [items, setItems] = useState([
-    { id: 'i1', name: 'Craft Beer Tray', price: 120, category: 'alcohol', participants: ['1', '2'], paidBy: ['1'] },
-    { id: 'i2', name: 'Green Tea Pot', price: 15, category: 'tea', participants: ['3'], paidBy: ['3'] },
-    { id: 'i3', name: 'Platter of Food', price: 200, category: 'food', participants: ['1', '2', '3'], paidBy: ['1'] }
+    { id: 'i1', name: 'Craft Beer Tray', price: 120, category: 'alcohol', participants: ['1', '2'], paidBy: { '1': 120 } },
+    { id: 'i2', name: 'Green Tea Pot', price: 15, category: 'tea', participants: ['3'], paidBy: { '3': 15 } },
+    { id: 'i3', name: 'Platter of Food', price: 200, category: 'food', participants: ['1', '2', '3'], paidBy: { '1': 200 } }
   ]);
 
   const [taxPercent, setTaxPercent] = useState(10);
@@ -252,7 +252,7 @@ const App = () => {
       price: 0,
       category: 'food',
       participants: participants.map(p => p.id), // Default all included
-      paidBy: [] // Nobody paid yet
+      paidBy: {} // Nobody paid yet
     };
     setItems([...items, newItem]);
   };
@@ -378,12 +378,35 @@ const App = () => {
   const togglePaidBy = (itemId, personId) => {
     setItems(items.map(item => {
       if (item.id !== itemId) return item;
-      const isPayer = item.paidBy?.includes(personId);
+      const paidByObj = item.paidBy || {};
+      const isPayer = paidByObj.hasOwnProperty(personId);
+      
+      if (isPayer) {
+        // Remove this person from payers
+        const { [personId]: removed, ...rest } = paidByObj;
+        return { ...item, paidBy: rest };
+      } else {
+        // Add this person as a payer with default amount (equal split of remaining)
+        const currentTotal = Object.values(paidByObj).reduce((sum, amt) => sum + Number(amt), 0);
+        const remaining = Math.max(0, Number(item.price) - currentTotal);
+        return { 
+          ...item, 
+          paidBy: { ...paidByObj, [personId]: remaining > 0 ? remaining : 0 } 
+        };
+      }
+    }));
+  };
+
+  const updatePaidAmount = (itemId, personId, amount) => {
+    setItems(items.map(item => {
+      if (item.id !== itemId) return item;
+      const paidByObj = item.paidBy || {};
       return {
         ...item,
-        paidBy: isPayer 
-          ? item.paidBy.filter(id => id !== personId)
-          : [...(item.paidBy || []), personId]
+        paidBy: {
+          ...paidByObj,
+          [personId]: amount === '' ? 0 : parseFloat(amount) || 0
+        }
       };
     }));
   };
@@ -432,16 +455,15 @@ const App = () => {
       if (price === 0 || item.participants.length === 0) return;
 
       const perPerson = price / item.participants.length;
-      const paidByCount = (item.paidBy || []).length;
+      const paidByObj = item.paidBy || {};
+      const payers = Object.keys(paidByObj);
       
-      if (paidByCount === 0) return; // Nobody paid, skip settlement
-      
-      const paidPerPayer = price / paidByCount;
+      if (payers.length === 0) return; // Nobody paid, skip settlement
 
-      // People who paid get credited
-      (item.paidBy || []).forEach(payerId => {
+      // People who paid get credited with their actual payment
+      payers.forEach(payerId => {
         if (balances[payerId] !== undefined) {
-          balances[payerId] += paidPerPayer;
+          balances[payerId] += Number(paidByObj[payerId]);
         }
       });
 
@@ -744,35 +766,71 @@ const App = () => {
                 <div className="pt-2 border-t">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
-                      <DollarSign size={12}/> Kim Ödədi? ({(item.paidBy || []).length})
+                      <DollarSign size={12}/> Kim Ödədi? ({Object.keys(item.paidBy || {}).length})
                     </h4>
                     <button 
-                      onClick={() => updateItem(item.id, 'paidBy', (item.paidBy || []).length === participants.length ? [] : participants.map(p => p.id))}
+                      onClick={() => {
+                        const allPaid = Object.keys(item.paidBy || {}).length === participants.length;
+                        if (allPaid) {
+                          updateItem(item.id, 'paidBy', {});
+                        } else {
+                          // Split equally among all participants
+                          const perPerson = item.price / participants.length;
+                          const newPaidBy = {};
+                          participants.forEach(p => {
+                            newPaidBy[p.id] = perPerson;
+                          });
+                          updateItem(item.id, 'paidBy', newPaidBy);
+                        }
+                      }}
                       className="text-xs text-emerald-600 font-medium"
                     >
-                      {(item.paidBy || []).length === participants.length ? 'Hamısını Təmizlə' : 'Hamısını Seç'}
+                      {Object.keys(item.paidBy || {}).length === participants.length ? 'Hamısını Təmizlə' : 'Hamısını Seç'}
                     </button>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2">
                     {participants.map(p => {
-                      const isPayer = (item.paidBy || []).includes(p.id);
+                      const paidByObj = item.paidBy || {};
+                      const isPayer = paidByObj.hasOwnProperty(p.id);
+                      const amount = isPayer ? paidByObj[p.id] : 0;
+                      
                       return (
-                        <button
-                          key={p.id}
-                          onClick={() => togglePaidBy(item.id, p.id)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition flex items-center gap-1.5
-                            ${isPayer ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm' : 'bg-white border-slate-200 text-slate-500'}
-                          `}
-                        >
-                          <div className={`w-2 h-2 rounded-full ${isPayer ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                          {p.name}
-                        </button>
+                        <div key={p.id} className="flex items-center gap-2">
+                          <button
+                            onClick={() => togglePaidBy(item.id, p.id)}
+                            className={`flex-shrink-0 w-5 h-5 rounded-full border-2 transition flex items-center justify-center
+                              ${isPayer ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-300'}
+                            `}
+                          >
+                            {isPayer && (
+                              <CheckCircle size={12} className="text-white" strokeWidth={3} />
+                            )}
+                          </button>
+                          <span className={`flex-1 text-sm font-medium ${isPayer ? 'text-slate-700' : 'text-slate-400'}`}>
+                            {p.name}
+                          </span>
+                          {isPayer && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-500 text-xs">₼</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={amount || ''}
+                                onChange={(e) => updatePaidAmount(item.id, p.id, e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-20 px-2 py-1 text-sm border border-emerald-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50"
+                                placeholder="0.00"
+                              />
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
-                  {(item.paidBy || []).length > 0 && (
+                  {Object.keys(item.paidBy || {}).length > 0 && (
                     <div className="mt-3 text-[10px] text-slate-400 text-right italic">
-                      Hər ödəyən: ₼{(item.price / (item.paidBy || []).length).toFixed(2)}
+                      Cəmi ödənildi: ₼{Object.values(item.paidBy || {}).reduce((sum, amt) => sum + Number(amt), 0).toFixed(2)}
                     </div>
                   )}
                 </div>
