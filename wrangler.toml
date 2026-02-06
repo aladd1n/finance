@@ -1,6 +1,9 @@
 name = "finance"
 compatibility_date = "2026-02-06"
+main = "worker.js"
 
-# Static assets configuration for Cloudflare Pages
-[assets]
-directory = "./dist"
+# Cloudflare D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "finance-db"
+database_id = "14f769e0-cf32-4432-b641-0f02509090dc"
