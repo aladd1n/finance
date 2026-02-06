@@ -44,9 +44,9 @@ const App = () => {
   const [showCsvImport, setShowCsvImport] = useState(false);
   
   const [items, setItems] = useState([
-    { id: 'i1', name: 'Craft Beer Tray', price: 120, category: 'alcohol', participants: ['1', '2'] },
-    { id: 'i2', name: 'Green Tea Pot', price: 15, category: 'tea', participants: ['3'] },
-    { id: 'i3', name: 'Platter of Food', price: 200, category: 'food', participants: ['1', '2', '3'] }
+    { id: 'i1', name: 'Craft Beer Tray', price: 120, category: 'alcohol', participants: ['1', '2'], paidBy: ['1'] },
+    { id: 'i2', name: 'Green Tea Pot', price: 15, category: 'tea', participants: ['3'], paidBy: ['3'] },
+    { id: 'i3', name: 'Platter of Food', price: 200, category: 'food', participants: ['1', '2', '3'], paidBy: ['1'] }
   ]);
 
   const [taxPercent, setTaxPercent] = useState(10);
@@ -236,7 +236,8 @@ const App = () => {
       name: 'New Item',
       price: 0,
       category: 'food',
-      participants: participants.map(p => p.id) // Default all included
+      participants: participants.map(p => p.id), // Default all included
+      paidBy: [] // Nobody paid yet
     };
     setItems([...items, newItem]);
   };
@@ -359,6 +360,19 @@ const App = () => {
     }));
   };
 
+  const togglePaidBy = (itemId, personId) => {
+    setItems(items.map(item => {
+      if (item.id !== itemId) return item;
+      const isPayer = item.paidBy?.includes(personId);
+      return {
+        ...item,
+        paidBy: isPayer 
+          ? item.paidBy.filter(id => id !== personId)
+          : [...(item.paidBy || []), personId]
+      };
+    }));
+  };
+
   // --- Calculations ---
 
   const totals = useMemo(() => {
@@ -392,6 +406,68 @@ const App = () => {
 
     return { subtotal, taxAmount, tipAmount, grandTotal, finalShares };
   }, [items, participants, taxPercent, tipPercent]);
+
+  // Settlement calculations - who owes whom
+  const settlements = useMemo(() => {
+    const balances = {}; // Positive = owed money, Negative = owes money
+    participants.forEach(p => { balances[p.id] = 0; });
+
+    items.forEach(item => {
+      const price = Number(item.price);
+      if (price === 0 || item.participants.length === 0) return;
+
+      const perPerson = price / item.participants.length;
+      const paidByCount = (item.paidBy || []).length;
+      
+      if (paidByCount === 0) return; // Nobody paid, skip settlement
+      
+      const paidPerPayer = price / paidByCount;
+
+      // People who paid get credited
+      (item.paidBy || []).forEach(payerId => {
+        if (balances[payerId] !== undefined) {
+          balances[payerId] += paidPerPayer;
+        }
+      });
+
+      // People who consumed get debited
+      item.participants.forEach(consumerId => {
+        if (balances[consumerId] !== undefined) {
+          balances[consumerId] -= perPerson;
+        }
+      });
+    });
+
+    // Create settlement transactions (who pays whom)
+    const transactions = [];
+    const creditors = participants.filter(p => balances[p.id] > 0.01).sort((a, b) => balances[b.id] - balances[a.id]);
+    const debtors = participants.filter(p => balances[p.id] < -0.01).sort((a, b) => balances[a.id] - balances[b.id]);
+
+    let i = 0, j = 0;
+    while (i < creditors.length && j < debtors.length) {
+      const creditor = creditors[i];
+      const debtor = debtors[j];
+      const amount = Math.min(balances[creditor.id], -balances[debtor.id]);
+
+      if (amount > 0.01) {
+        transactions.push({
+          from: debtor.id,
+          fromName: debtor.name,
+          to: creditor.id,
+          toName: creditor.name,
+          amount: amount
+        });
+
+        balances[creditor.id] -= amount;
+        balances[debtor.id] += amount;
+      }
+
+      if (Math.abs(balances[creditor.id]) < 0.01) i++;
+      if (Math.abs(balances[debtor.id]) < 0.01) j++;
+    }
+
+    return { balances, transactions };
+  }, [items, participants]);
 
   // --- Components ---
 
@@ -625,6 +701,43 @@ const App = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Who Paid Section */}
+                <div className="pt-2 border-t">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+                      <DollarSign size={12}/> Kim Ödədi? ({(item.paidBy || []).length})
+                    </h4>
+                    <button 
+                      onClick={() => updateItem(item.id, 'paidBy', (item.paidBy || []).length === participants.length ? [] : participants.map(p => p.id))}
+                      className="text-xs text-emerald-600 font-medium"
+                    >
+                      {(item.paidBy || []).length === participants.length ? 'Hamısını Təmizlə' : 'Hamısını Seç'}
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {participants.map(p => {
+                      const isPayer = (item.paidBy || []).includes(p.id);
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => togglePaidBy(item.id, p.id)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition flex items-center gap-1.5
+                            ${isPayer ? 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm' : 'bg-white border-slate-200 text-slate-500'}
+                          `}
+                        >
+                          <div className={`w-2 h-2 rounded-full ${isPayer ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                          {p.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {(item.paidBy || []).length > 0 && (
+                    <div className="mt-3 text-[10px] text-slate-400 text-right italic">
+                      Hər ödəyən: ₼{(item.price / (item.paidBy || []).length).toFixed(2)}
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
 
@@ -703,6 +816,48 @@ const App = () => {
                 </div>
               ))}
             </div>
+
+            {/* Settlements Section - Who Owes Whom */}
+            {settlements.transactions.length > 0 && (
+              <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                <div className="p-4 border-b bg-emerald-50 flex justify-between items-center">
+                  <h3 className="font-bold text-emerald-700 uppercase text-xs tracking-wider flex items-center gap-2">
+                    <Calculator size={14}/> Hesablaşma
+                  </h3>
+                  <span className="text-[10px] text-emerald-600 italic">Kim kimə borcludur</span>
+                </div>
+                <div className="p-4 space-y-3">
+                  {settlements.transactions.map((transaction, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-xs">
+                          {transaction.fromName.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="font-bold text-sm">{transaction.fromName}</div>
+                          <div className="text-[10px] text-slate-500">ödəməlidir</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <ChevronRight className="text-slate-400" size={16} />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="font-bold text-sm text-right">{transaction.toName}</div>
+                          <div className="text-[10px] text-slate-500 text-right">almalıdır</div>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">
+                          {transaction.toName.charAt(0)}
+                        </div>
+                      </div>
+                      <div className="ml-4 text-right">
+                        <div className="font-black text-emerald-600">₼{transaction.amount.toFixed(2)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Bill Summary */}
             <div className="bg-slate-900 text-white rounded-2xl p-6 space-y-3">
