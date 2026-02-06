@@ -46,12 +46,18 @@ const App = () => {
   const [newName, setNewName] = useState('');
   const [csvInput, setCsvInput] = useState('');
   const [showCsvImport, setShowCsvImport] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [allEvents, setAllEvents] = useState([]);
+  const [currentEvent, setCurrentEvent] = useState(null);
+  const [newEventTitle, setNewEventTitle] = useState('');
+  const [newEventDate, setNewEventDate] = useState('');
   
   const [items, setItems] = useState([]);
+  const [itemsExpanded, setItemsExpanded] = useState(true);
 
   const [taxPercent, setTaxPercent] = useState(10);
   const [tipPercent, setTipPercent] = useState(15);
-  const [activeTab, setActiveTab] = useState('items'); // 'people', 'items', 'summary'
+  const [activeTab, setActiveTab] = useState('items'); // 'people', 'items', 'summary', 'dashboard'
   const [lastSaved, setLastSaved] = useState(null);
 
   const isAdmin = user?.role === 'admin';
@@ -677,7 +683,7 @@ const App = () => {
               <input 
                 type="text" 
                 placeholder="Ad (məs. Əli)" 
-                className="flex-1 p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none"
+                className={`flex-1 p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
               />
@@ -718,7 +724,7 @@ const App = () => {
                   <input 
                     type="text" 
                     placeholder="Əli, Vəli, Kamran, Elçin..." 
-                    className="flex-1 p-3 rounded-xl border-2 border-blue-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className={`flex-1 p-3 rounded-xl border-2 focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-blue-300'}`}
                     value={csvInput}
                     onChange={(e) => setCsvInput(e.target.value)}
                   />
@@ -730,7 +736,7 @@ const App = () => {
             )}
             
             {/* Participants List */}
-            <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+            <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl shadow-sm border overflow-hidden`}>
               {participants.map((p, idx) => (
                 <div key={p.id} className={`p-4 ${idx !== participants.length - 1 ? 'border-b' : ''} space-y-3`}>
                   <div className="flex items-center justify-between">
@@ -762,10 +768,11 @@ const App = () => {
                         type="number"
                         step="0.01"
                         min="0"
-                        className="w-full pl-6 pr-2 py-1.5 bg-slate-50 rounded-lg border text-sm"
+                        className={`w-full pl-6 pr-2 py-1.5 rounded-lg border text-sm ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-slate-50 text-gray-900 border-gray-300'}`}
                         value={p.amountPaid ?? ''}
                         onChange={(e) => updateAmountPaid(p.id, e.target.value)}
                         placeholder="0.00"
+                        disabled={!isAdmin}
                       />
                     </div>
                   </div>
@@ -781,33 +788,44 @@ const App = () => {
         {/* Section: Items Management */}
         {activeTab === 'items' && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-            <div className="bg-emerald-50 border-2 border-emerald-200 rounded-xl p-3">
+            <div className="bg-emerald-50 border-2 border-emerald-200 rounded-xl p-3 flex justify-between items-center">
               <div className="text-xs font-bold text-emerald-700">Cəmi: {items.length} məhsul</div>
+              <button 
+                onClick={() => setItemsExpanded(!itemsExpanded)}
+                className="text-emerald-700 hover:text-emerald-900 transition"
+              >
+                {itemsExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+              </button>
             </div>
+            {itemsExpanded && (
+            <div className="max-h-[600px] overflow-y-auto space-y-4 pr-2">
             {items.map((item) => (
-              <div key={item.id} className="bg-white rounded-2xl shadow-sm border p-4 space-y-4">
+              <div key={item.id} className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl shadow-sm border p-4 space-y-4`}>
                 <div className="flex gap-3 items-start">
                   <div className="flex-1 space-y-3">
                     <input 
-                      className="text-lg font-bold w-full bg-transparent border-b border-transparent focus:border-blue-200 outline-none"
+                      className={`text-lg font-bold w-full bg-transparent border-b focus:border-blue-200 outline-none ${darkMode ? 'text-gray-100 border-gray-700' : 'text-gray-900 border-transparent'}`}
                       value={item.name}
                       onChange={(e) => updateItem(item.id, 'name', e.target.value)}
                       placeholder="Məhsulun Adı"
+                      disabled={!isAdmin}
                     />
                     <div className="flex gap-4">
                       <div className="flex-1 relative">
-                        <span className="absolute left-3 top-2 text-slate-400">₼</span>
+                        <span className={`absolute left-3 top-2 ${darkMode ? 'text-gray-400' : 'text-slate-400'}`}>₼</span>
                         <input 
                           type="number"
-                          className="w-full pl-7 pr-3 py-2 bg-slate-50 rounded-lg border text-sm"
+                          className={`w-full pl-7 pr-3 py-2 rounded-lg border text-sm ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-slate-50 text-gray-900 border-gray-300'}`}
                           value={item.price}
                           onChange={(e) => updateItem(item.id, 'price', e.target.value)}
+                          disabled={!isAdmin}
                         />
                       </div>
                       <select 
-                        className="bg-slate-50 border rounded-lg px-2 text-sm"
+                        className={`border rounded-lg px-2 text-sm ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-slate-50 text-gray-900 border-gray-300'}`}
                         value={item.category}
                         onChange={(e) => updateItem(item.id, 'category', e.target.value)}
+                        disabled={!isAdmin}
                       >
                         <option value="food">Yemək</option>
                         <option value="alcohol">Alkoqol</option>
@@ -943,7 +961,10 @@ const App = () => {
                 </div>
               </div>
             ))}
+            </div>
+            )}
 
+            {isAdmin && (
             <div className="flex gap-2">
               <button 
                 onClick={addItem}
@@ -960,6 +981,7 @@ const App = () => {
                 </button>
               )}
             </div>
+            )}
           </div>
         )}
 
