@@ -1,16 +1,9 @@
-# This configuration is for Cloudflare Pages (frontend only)
-# For the full setup, see DEPLOYMENT.md
-
-name = "finance-frontend"
-type = "javascript"
-
-# Build settings for Cloudflare Pages
-[build]
-command = "npm run build"
-destination = "dist"
-
-[env.production]
-name = "finance-frontend-prod"
-
-[env.staging]
-name = "finance-frontend-staging"
+# This file is not used for Cloudflare Pages deployment
+# Cloudflare Pages auto-deploys from your Git repository
+# 
+# For backend deployment (Railway/Render), use environment variables:
+# - MONGODB_URI
+# - NODE_ENV
+# - PORT
+#
+# No manual deploy command needed - just push to main branch!
