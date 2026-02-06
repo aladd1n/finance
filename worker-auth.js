@@ -421,13 +421,19 @@ export default {
 
       // ========== BILLS API ==========
 
-      // Get all bills for current user
+      // Get all bills (optionally filtered by event_id)
       if (path === '/api/bills' && request.method === 'GET') {
-        const result = await env.DB.prepare(
-          'SELECT * FROM bills ORDER BY created_at DESC'
-        ).bind().all();
+        const eventId = url.searchParams.get('event_id');
         
-        const bills = result.results.map(row => ({...JSON.parse(row.data), dbId: row.id}));
+        const query = eventId 
+          ? 'SELECT * FROM bills WHERE event_id = ? ORDER BY created_at DESC'
+          : 'SELECT * FROM bills ORDER BY created_at DESC';
+        
+        const result = eventId
+          ? await env.DB.prepare(query).bind(eventId).all()
+          : await env.DB.prepare(query).bind().all();
+        
+        const bills = result.results.map(row => ({...JSON.parse(row.data), dbId: row.id, event_id: row.event_id}));
         return new Response(JSON.stringify(bills), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -488,10 +494,11 @@ export default {
         };
 
         await env.DB.prepare(
-          'INSERT INTO bills (id, user_id, data, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
+          'INSERT INTO bills (id, user_id, event_id, data, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
         ).bind(
           billId,
           currentUser.id,
+          body.event_id || null,
           JSON.stringify(billData),
           billData.createdAt,
           billData.updatedAt
@@ -522,8 +529,9 @@ export default {
         };
 
         const result = await env.DB.prepare(
-          'UPDATE bills SET data = ?, updated_at = ? WHERE id = ?'
+          'UPDATE bills SET event_id = ?, data = ?, updated_at = ? WHERE id = ?'
         ).bind(
+          body.event_id || null,
           JSON.stringify(billData),
           billData.updatedAt,
           billId

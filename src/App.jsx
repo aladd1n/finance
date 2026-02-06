@@ -124,16 +124,23 @@ const App = () => {
     if (!user) return null;
     try {
       setSyncStatus('syncing');
+      
+      // Include event_id in the bill data
+      const dataWithEvent = {
+        ...billData,
+        event_id: currentEvent?.id || null
+      };
+      
       const response = billId 
         ? await fetch(`${API_URL}/api/bills/${billId}`, {
             method: 'PUT',
             headers: getAuthHeaders(),
-            body: JSON.stringify(billData)
+            body: JSON.stringify(dataWithEvent)
           })
         : await fetch(`${API_URL}/api/bills`, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify(billData)
+            body: JSON.stringify(dataWithEvent)
           });
       
       if (response.ok) {
@@ -170,7 +177,8 @@ const App = () => {
 
   const loadLatestBillFromServer = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/bills`, {
+      const eventParam = currentEvent?.id ? `?event_id=${currentEvent.id}` : '';
+      const response = await fetch(`${API_URL}/api/bills${eventParam}`, {
         headers: getAuthHeaders()
       });
       if (response.ok) {
@@ -242,7 +250,7 @@ const App = () => {
     }
   };
 
-  const enterEvent = (event) => {
+  const enterEvent = async (event) => {
     // Clear all previous data when entering a new event
     setCurrentEvent(event);
     setParticipants([]);
@@ -253,6 +261,26 @@ const App = () => {
     setExtractedItems([]);
     setShowExtractedPreview(false);
     setActiveTab('items');
+    
+    // Load bills for this event
+    try {
+      const response = await fetch(`${API_URL}/api/bills?event_id=${event.id}`, {
+        headers: getAuthHeaders()
+      });
+      if (response.ok) {
+        const bills = await response.json();
+        if (bills.length > 0) {
+          const latestBill = bills[0];
+          if (latestBill.participants) setParticipants(latestBill.participants);
+          if (latestBill.items) setItems(latestBill.items);
+          if (latestBill.taxPercent !== undefined) setTaxPercent(latestBill.taxPercent);
+          if (latestBill.tipPercent !== undefined) setTipPercent(latestBill.tipPercent);
+          if (latestBill.id) setBillId(latestBill.id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load event bills:', error);
+    }
   };
 
   const exitEvent = () => {
@@ -280,30 +308,15 @@ const App = () => {
     }
   }, []);
 
-  // --- Load from Cloudflare D1 Database ---
+  // --- Load events on login ---
   useEffect(() => {
     if (!user) return;
-    const loadData = async () => {
-      const serverBill = await loadLatestBillFromServer();
-      
-      if (serverBill) {
-        if (serverBill.participants) setParticipants(serverBill.participants);
-        if (serverBill.items) setItems(serverBill.items);
-        if (serverBill.taxPercent !== undefined) setTaxPercent(serverBill.taxPercent);
-        if (serverBill.tipPercent !== undefined) setTipPercent(serverBill.tipPercent);
-        if (serverBill.id) setBillId(serverBill.id);
-        setLastSaved(new Date(serverBill.updatedAt));
-        setSyncStatus('synced');
-      }
-    };
-
-    loadData();
     loadEvents();
   }, [user]);
 
   useEffect(() => {
-    // Only admins can auto-save bills
-    if (!isAdmin) return;
+    // Only admins can auto-save bills and only within an event
+    if (!isAdmin || !currentEvent) return;
     
     // Skip saving on initial mount (before data is loaded from server)
     if (billId === null && participants.length === 0 && items.length === 0) {
@@ -325,7 +338,7 @@ const App = () => {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  }, [participants, items, taxPercent, tipPercent]);
+  }, [participants, items, taxPercent, tipPercent, currentEvent]);
 
   // --- Logic ---
   
