@@ -282,11 +282,11 @@ export default {
 
       // ========== EVENTS API ==========
 
-      // Get all events for current user
+      // Get all events (visible to all users)
       if (path === '/api/events' && request.method === 'GET') {
         const result = await env.DB.prepare(
-          'SELECT * FROM events WHERE user_id = ? ORDER BY event_date DESC'
-        ).bind(currentUser.id).all();
+          'SELECT * FROM events ORDER BY event_date DESC, created_at DESC'
+        ).bind().all();
         
         return new Response(JSON.stringify(result.results || []), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
