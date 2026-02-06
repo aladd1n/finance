@@ -1,0 +1,20 @@
+name = "finance-app"
+type = "javascript"
+workers_dev = true
+
+[env.development]
+route = "localhost:3001"
+
+[env.production]
+route = "your-domain.com/api/*"
+
+# IMPORTANT: Set environment variables via `wrangler secret` or `.env` file
+# DO NOT commit sensitive data like MONGODB_URI with actual credentials
+# Use: wrangler secret put MONGODB_URI
+[env.development.vars]
+NODE_ENV = "development"
+PORT = "3001"
+
+[env.production.vars]
+NODE_ENV = "production"
+PORT = "3001"
