@@ -1,57 +1,32 @@
-// Cloudflare Worker with D1 Database and Google OAuth
+// Cloudflare Worker with D1 Database (no auth for now)
 // This file is used for Cloudflare deployment
 
-// Helper function to generate random session ID
-function generateSessionId() {
-  return crypto.randomUUID();
-}
+const PUBLIC_USER_ID = 'public-user';
+const PUBLIC_USER_EMAIL = 'public@finance.app';
+const PUBLIC_USER_NAME = 'Finance Public';
+const PUBLIC_USER_GOOGLE_ID = 'public-user';
 
-// Helper function to get user from session
-async function getUserFromSession(sessionId, env) {
-  if (!sessionId) return null;
+async function ensurePublicUser(env) {
+  await env.DB.prepare(
+    'INSERT OR IGNORE INTO users (id, email, name, picture, google_id, last_login) VALUES (?, ?, ?, ?, ?, datetime("now"))'
+  ).bind(
+    PUBLIC_USER_ID,
+    PUBLIC_USER_EMAIL,
+    PUBLIC_USER_NAME,
+    '',
+    PUBLIC_USER_GOOGLE_ID
+  ).run();
 
-  const session = await env.DB.prepare(
-    'SELECT s.*, u.* FROM sessions s JOIN users u ON s.user_id = u.id WHERE s.id = ? AND s.expires_at > datetime("now")'
-  ).bind(sessionId).first();
+  const user = await env.DB.prepare(
+    'SELECT * FROM users WHERE id = ?'
+  ).bind(PUBLIC_USER_ID).first();
 
-  return session ? {
-    id: session.user_id,
-    email: session.email,
-    name: session.name,
-    picture: session.picture
+  return user ? {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    picture: user.picture
   } : null;
-}
-
-// Helper function to exchange Google auth code for tokens
-async function exchangeGoogleCode(code, env) {
-  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      code,
-      client_id: env.GOOGLE_CLIENT_ID,
-      client_secret: env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: env.REDIRECT_URI || 'http://localhost:8787/auth/callback',
-      grant_type: 'authorization_code'
-    })
-  });
-
-  if (!tokenResponse.ok) {
-    throw new Error('Failed to exchange code for token');
-  }
-
-  const tokens = await tokenResponse.json();
-  
-  // Get user info from Google
-  const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-    headers: { Authorization: `Bearer ${tokens.access_token}` }
-  });
-
-  if (!userInfoResponse.ok) {
-    throw new Error('Failed to get user info');
-  }
-
-  return await userInfoResponse.json();
 }
 
 export default {
@@ -72,102 +47,37 @@ export default {
     }
 
     try {
-      // Get session from cookie or Authorization header
-      const cookies = request.headers.get('Cookie') || '';
-      const sessionMatch = cookies.match(/session=([^;]+)/);
-      const sessionId = sessionMatch ? sessionMatch[1] : request.headers.get('Authorization')?.replace('Bearer ', '');
+      const currentUser = await ensurePublicUser(env);
 
-      // ========== AUTH ROUTES ==========
-
-      // Google OAuth login URL
-      if (path === '/auth/google') {
-        const redirectUri = env.REDIRECT_URI || `${url.origin}/auth/callback`;
-        const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-        authUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID);
-        authUrl.searchParams.set('redirect_uri', redirectUri);
-        authUrl.searchParams.set('response_type', 'code');
-        authUrl.searchParams.set('scope', 'email profile');
-        authUrl.searchParams.set('access_type', 'offline');
-
-        return new Response(JSON.stringify({ url: authUrl.toString() }), {
+      if (path === '/' || path === '/index.html') {
+        return new Response(JSON.stringify({
+          service: 'Finance API',
+          message: 'Authentication is disabled temporarily. Use /api/bills to save and load data.'
+        }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      // OAuth callback handler
-      if (path === '/auth/callback') {
-        const code = url.searchParams.get('code');
-        if (!code) {
-          return new Response('Missing authorization code', { status: 400 });
-        }
-
-        // Exchange code for user info
-        const googleUser = await exchangeGoogleCode(code, env);
-
-        // Check if user exists, if not create
-        let user = await env.DB.prepare(
-          'SELECT * FROM users WHERE google_id = ?'
-        ).bind(googleUser.id).first();
-
-        if (!user) {
-          const userId = generateSessionId();
-          await env.DB.prepare(
-            'INSERT INTO users (id, email, name, picture, google_id, last_login) VALUES (?, ?, ?, ?, ?, datetime("now"))'
-          ).bind(userId, googleUser.email, googleUser.name, googleUser.picture, googleUser.id).run();
-          
-          user = { id: userId, email: googleUser.email, name: googleUser.name, picture: googleUser.picture };
-        } else {
-          // Update last login
-          await env.DB.prepare(
-            'UPDATE users SET last_login = datetime("now") WHERE id = ?'
-          ).bind(user.id).run();
-        }
-
-        // Create session (expires in 30 days)
-        const newSessionId = generateSessionId();
-        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        
-        await env.DB.prepare(
-          'INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)'
-        ).bind(newSessionId, user.id, expiresAt).run();
-
-        // Redirect to frontend with session
-        const redirectUrl = new URL(env.FRONTEND_URL || url.origin);
-        redirectUrl.searchParams.set('session', newSessionId);
-        
-        return Response.redirect(redirectUrl.toString(), 302);
+      if (path === '/favicon.ico') {
+        return new Response(null, {
+          status: 204,
+          headers: corsHeaders
+        });
       }
 
-      // Get current user
-      if (path === '/auth/me') {
-        const user = await getUserFromSession(sessionId, env);
-        if (!user) {
-          return new Response(JSON.stringify({ error: 'Not authenticated' }), {
-            status: 401,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-
-        return new Response(JSON.stringify(user), {
+      if (path.startsWith('/auth')) {
+        return new Response(JSON.stringify({ error: 'Authentication disabled for now' }), {
+          status: 501,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      // Logout
-      if (path === '/auth/logout' && request.method === 'POST') {
-        if (sessionId) {
-          await env.DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run();
-        }
-        
-        return new Response(JSON.stringify({ success: true }), {
+      if (!currentUser) {
+        return new Response(JSON.stringify({ error: 'Public user initialization failed' }), {
+          status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-
-      // ========== API ROUTES (Protected) ==========
-
-      // Get current user for protected routes
-      const currentUser = await getUserFromSession(sessionId, env);
 
       // Health check (public)
       if (path === '/api/health') {
@@ -179,14 +89,6 @@ export default {
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
-      }
-
-      // All other API routes require authentication
-      if (!currentUser && path.startsWith('/api/')) {
-        return new Response(JSON.stringify({ error: 'Authentication required' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
       }
 
       // Get all bills for current user
