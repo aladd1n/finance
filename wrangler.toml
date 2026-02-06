@@ -1,0 +1,17 @@
+name = "finance"
+compatibility_date = "2026-02-06"
+main = "worker-auth.js"
+
+# Cloudflare D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "finance-db"
+database_id = "14f769e0-cf32-4432-b641-0f02509090dc"
+
+[env.development]
+vars = { FRONTEND_URL = "http://localhost:3000" }
+
+# Environment variables (set via wrangler secret)
+# For local development, update .dev.vars with your credentials
+# For production deployment, use: wrangler secret put GOOGLE_CLIENT_ID
+# For production deployment, use: wrangler secret put GOOGLE_CLIENT_SECRET

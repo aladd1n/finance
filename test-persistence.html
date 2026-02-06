@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Test - Finance App</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        h1 { color: #1e293b; }
+        h2 { color: #475569; margin-top: 30px; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #2563eb; }
+        button.danger { background: #ef4444; }
+        button.danger:hover { background: #dc2626; }
+        button.success { background: #10b981; }
+        button.success:hover { background: #059669; }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .status.success { background: #d1fae5; color: #065f46; }
+        .status.error { background: #fee2e2; color: #991b1b; }
+        .status.info { background: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Server Data Persistence Test</h1>
+        <p>Bu səhifə server-in məlumatları düzgün saxladığını yoxlayır.</p>
+
+        <h2>1️⃣ Server Status</h2>
+        <button onclick="checkHealth()">Check Server</button>
+        <div id="health-status"></div>
+
+        <h2>2️⃣ Create Test Data</h2>
+        <button onclick="createTestBill()" class="success">Create Sample Bill</button>
+        <div id="create-status"></div>
+
+        <h2>3️⃣ View Saved Bills</h2>
+        <button onclick="loadBills()">Load All Bills</button>
+        <button onclick="loadLatest()">Load Latest Bill</button>
+        <div id="bills-status"></div>
+        <pre id="bills-data">Məlumat yoxdur</pre>
+
+        <h2>4️⃣ Clear Test Data</h2>
+        <button onclick="deleteAllBills()" class="danger">Delete All Bills</button>
+        <div id="delete-status"></div>
+
+        <h2>📋 Instructions</h2>
+        <ol>
+            <li>Click <strong>"Check Server"</strong> to verify server is running</li>
+            <li>Click <strong>"Create Sample Bill"</strong> to add test data</li>
+            <li>Click <strong>"Load All Bills"</strong> to see saved data</li>
+            <li><strong>Refresh this page</strong> (F5 or Ctrl+R)</li>
+            <li>Click <strong>"Load All Bills"</strong> again - data should still be there! ✅</li>
+            <li>Click <strong>"Delete All Bills"</strong> to clean up</li>
+        </ol>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001/api';
+
+        async function checkHealth() {
+            const statusDiv = document.getElementById('health-status');
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+                statusDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ Server işləyir!<br>
+                        Status: ${data.status}<br>
+                        Time: ${new Date(data.timestamp).toLocaleString('az-AZ')}
+                    </div>
+                `;
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ Server işləmir! Əvvəlcə server-i başladın:<br>
+                        <code>npm run server</code>
+                    </div>
+                `;
+            }
+        }
+
+        async function createTestBill() {
+            const statusDiv = document.getElementById('create-status');
+            const testBill = {
+                participants: [
+                    { id: '1', name: 'Əli', paid: false },
+                    { id: '2', name: 'Vəli', paid: true },
+                    { id: '3', name: 'Kamran', paid: false }
+                ],
+                items: [
+                    { id: 'i1', name: 'Pizza', price: 45, category: 'food', participants: ['1', '2', '3'] },
+                    { id: 'i2', name: 'Koka Kola', price: 12, category: 'tea', participants: ['1', '2'] },
+                    { id: 'i3', name: 'Pivə', price: 25, category: 'alcohol', participants: ['2', '3'] }
+                ],
+                taxPercent: 18,
+                tipPercent: 10
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/bills`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testBill)
+                });
+                const data = await response.json();
+                statusDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ Test məlumat yaradıldı!<br>
+                        Bill ID: ${data.id}
+                    </div>
+                `;
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ Xəta: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function loadBills() {
+            const statusDiv = document.getElementById('bills-status');
+            const dataDiv = document.getElementById('bills-data');
+            try {
+                const response = await fetch(`${API_URL}/bills`);
+                const bills = await response.json();
+                
+                if (bills.length === 0) {
+                    statusDiv.innerHTML = `<div class="status info">ℹ️ Heç bir hesab tapılmadı</div>`;
+                    dataDiv.textContent = 'Məlumat yoxdur';
+                } else {
+                    statusDiv.innerHTML = `<div class="status success">✅ ${bills.length} hesab tapıldı</div>`;
+                    dataDiv.textContent = JSON.stringify(bills, null, 2);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Xəta: ${error.message}</div>`;
+            }
+        }
+
+        async function loadLatest() {
+            const statusDiv = document.getElementById('bills-status');
+            const dataDiv = document.getElementById('bills-data');
+            try {
+                const response = await fetch(`${API_URL}/bills`);
+                const bills = await response.json();
+                
+                if (bills.length === 0) {
+                    statusDiv.innerHTML = `<div class="status info">ℹ️ Heç bir hesab tapılmadı</div>`;
+                    dataDiv.textContent = 'Məlumat yoxdur';
+                } else {
+                    const latest = bills[bills.length - 1];
+                    statusDiv.innerHTML = `
+                        <div class="status success">
+                            ✅ Ən son hesab<br>
+                            ID: ${latest.id}<br>
+                            Yaradılma: ${new Date(latest.createdAt).toLocaleString('az-AZ')}<br>
+                            Yenilənmə: ${new Date(latest.updatedAt).toLocaleString('az-AZ')}
+                        </div>
+                    `;
+                    dataDiv.textContent = JSON.stringify(latest, null, 2);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Xəta: ${error.message}</div>`;
+            }
+        }
+
+        async function deleteAllBills() {
+            if (!confirm('Bütün hesabları silmək istədiyinizdən əminsiniz?')) {
+                return;
+            }
+
+            const statusDiv = document.getElementById('delete-status');
+            try {
+                const response = await fetch(`${API_URL}/bills`);
+                const bills = await response.json();
+                
+                for (const bill of bills) {
+                    await fetch(`${API_URL}/bills/${bill.id}`, { method: 'DELETE' });
+                }
+                
+                statusDiv.innerHTML = `<div class="status success">✅ ${bills.length} hesab silindi</div>`;
+                document.getElementById('bills-data').textContent = 'Məlumat yoxdur';
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Xəta: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-check on load
+        checkHealth();
+    </script>
+</body>
+</html>
