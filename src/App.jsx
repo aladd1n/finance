@@ -107,7 +107,10 @@ const translations = {
     itemsCount: 'məhsul',
     settlements: 'Hesablaşmalar',
     settlement: 'Hesablaşma',
-    whoOwesWhom: 'Kim kimə borcludur'
+    whoOwesWhom: 'Kim kimə borcludur',
+    itemPrice: 'Məhsul Qiyməti',
+    remainingAmount: 'Qalıq Məbləğ',
+    overpaid: 'Artıq ödənib'
   },
   en: {
     appName: 'SplitIt Pro',
@@ -177,7 +180,10 @@ const translations = {
     itemsCount: 'items',
     settlements: 'Settlements',
     settlement: 'Settlement',
-    whoOwesWhom: 'Who owes whom'
+    whoOwesWhom: 'Who owes whom',
+    itemPrice: 'Item Price',
+    remainingAmount: 'Remaining',
+    overpaid: 'Overpaid'
   }
 };
 
@@ -1438,11 +1444,40 @@ const App = () => {
                       );
                     })}
                   </div>
-                  {Object.keys(item.paidBy || {}).length > 0 && (
-                    <div className="mt-3 text-[10px] text-slate-400 text-right italic">
-                      {t.totalPaid}: {currency}{getTotalPaid(item.paidBy).toFixed(2)}
-                    </div>
-                  )}
+                  {Object.keys(item.paidBy || {}).length > 0 && (() => {
+                    const totalPaid = getTotalPaid(item.paidBy);
+                    const remaining = item.price - totalPaid;
+                    const isExact = Math.abs(remaining) < 0.01;
+                    const isOver = remaining < -0.01;
+                    
+                    return (
+                      <div className="mt-3 space-y-1.5">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-500">{t.itemPrice}:</span>
+                          <span className="font-bold text-slate-700">{currency}{item.price.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-500">{t.totalPaid}:</span>
+                          <span className={`font-bold ${isExact ? 'text-green-600' : isOver ? 'text-red-600' : 'text-orange-600'}`}>
+                            {currency}{totalPaid.toFixed(2)}
+                          </span>
+                        </div>
+                        {!isExact && (
+                          <div className={`flex justify-between items-center text-xs font-bold rounded-lg px-2 py-1.5 ${
+                            isOver ? 'bg-red-50 text-red-700' : 'bg-orange-50 text-orange-700'
+                          }`}>
+                            <span>{isOver ? t.overpaid : t.remainingAmount}:</span>
+                            <span>{currency}{Math.abs(remaining).toFixed(2)}</span>
+                          </div>
+                        )}
+                        {isExact && (
+                          <div className="flex items-center justify-center gap-1 text-xs font-bold text-green-600 bg-green-50 rounded-lg px-2 py-1.5">
+                            <CheckCircle size={14} /> {t.paid}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             ))}
