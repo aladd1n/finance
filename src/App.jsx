@@ -1748,34 +1748,6 @@ const App = () => {
           </>
         )}
       </main>
-
-      {/* Floating Action Hint */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white px-4 py-2 rounded-full shadow-lg border text-xs font-medium text-slate-500 flex items-center gap-2">
-        {syncStatus === 'syncing' && (
-          <>
-            <RefreshCw size={14} className="animate-spin text-blue-500" />
-            <span>Cloudflare D1-ə göndərilir...</span>
-          </>
-        )}
-        {syncStatus === 'synced' && (
-          <>
-            <Cloud size={14} className="text-green-500" />
-            <span>Cloudflare D1-də saxlanıldı ✓</span>
-          </>
-        )}
-        {syncStatus === 'error' && (
-          <>
-            <CloudOff size={14} className="text-red-500" />
-            <span>Cloudflare D1 xətası</span>
-          </>
-        )}
-        {(syncStatus === 'local' || !syncStatus) && (
-          <>
-            <Cloud size={14} className="text-blue-500" />
-            {lastSaved ? `Son saxlanma: ${lastSaved.toLocaleTimeString()}` : 'Avtomatik saxlanır...'}
-          </>
-        )}
-      </div>
       </div>
       )}
     </div>
