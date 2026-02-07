@@ -110,7 +110,10 @@ const translations = {
     whoOwesWhom: 'Kim kimə borcludur',
     itemPrice: 'Məhsul Qiyməti',
     remainingAmount: 'Qalıq Məbləğ',
-    overpaid: 'Artıq ödənib'
+    overpaid: 'Artıq ödənib',
+    roleAdmin: 'Admin',
+    roleUser: 'İstifadəçi',
+    testMode: 'Test Rejimi'
   },
   en: {
     appName: 'SplitIt Pro',
@@ -183,7 +186,10 @@ const translations = {
     whoOwesWhom: 'Who owes whom',
     itemPrice: 'Item Price',
     remainingAmount: 'Remaining',
-    overpaid: 'Overpaid'
+    overpaid: 'Overpaid',
+    roleAdmin: 'Admin',
+    roleUser: 'User',
+    testMode: 'Test Mode'
   }
 };
 
@@ -195,6 +201,10 @@ const App = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState('en');
   const [currency, setCurrency] = useState('$');
+  const [testRole, setTestRole] = useState(() => {
+    const savedRole = localStorage.getItem('testRole');
+    return savedRole || 'admin';
+  });
   const [billId, setBillId] = useState(null);
   const [syncStatus, setSyncStatus] = useState(null); // 'syncing', 'synced', 'error' or null
   const [participants, setParticipants] = useState([]);
@@ -219,7 +229,7 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('items'); // 'people', 'items', 'summary', 'dashboard'
   const [lastSaved, setLastSaved] = useState(null);
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = testRole === 'admin'; // Use test role for testing period
   const t = translations[language];
   
   const currencies = {
@@ -965,6 +975,18 @@ const App = () => {
                   <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-slate-500'} uppercase font-bold`}>{t.totalBill}</div>
                   <div className="text-lg font-black text-blue-600">{currency}{totals.grandTotal.toFixed(2)}</div>
                 </div>
+                <select
+                  value={testRole}
+                  onChange={(e) => {
+                    setTestRole(e.target.value);
+                    localStorage.setItem('testRole', e.target.value);
+                  }}
+                  className={`px-2 py-1 rounded-lg text-xs font-bold ${testRole === 'admin' ? 'bg-blue-600 text-white' : 'bg-purple-600 text-white'} transition`}
+                  title={t.testMode}
+                >
+                  <option value="admin">🛡️ {t.roleAdmin}</option>
+                  <option value="user">👤 {t.roleUser}</option>
+                </select>
                 {/* Language Toggle */}
                 <select
                   value={language}
