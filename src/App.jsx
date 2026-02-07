@@ -37,12 +37,158 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://finance.psszdh.workers.dev';
 
+// Translations
+const translations = {
+  az: {
+    appName: 'SplitIt Pro',
+    tagline: 'Qrup xərclərini asanlıqla bölüşdürün',
+    login: 'Google ilə daxil ol',
+    logout: 'Çıxış',
+    darkMode: 'Qaranlıq rejim',
+    lightMode: 'İşıqlı rejim',
+    totalBill: 'Ümumi Hesab',
+    events: 'Tədbirlər',
+    participants: 'İştirakçılar',
+    items: 'Məhsullar',
+    summary: 'Xülasə',
+    addParticipant: 'Ad (məs. Əli)',
+    bulkImport: 'Toplu İdxal (CSV)',
+    clearAll: 'Hamısını Təmizlə',
+    selectAll: 'Hamısını Seç',
+    paid: 'Ödənildi',
+    amountPaid: 'Ödənilən məbləğ',
+    itemName: 'Məhsulun Adı',
+    addItem: 'Yeni Məhsul Əlavə Et',
+    participation: 'İştirak',
+    whoPaid: 'Kim Ödədi?',
+    totalPaid: 'Cəmi ödənildi',
+    eachPays: 'Hər biri ödəyir',
+    tax: 'Vergi %',
+    serviceFee: 'Xidmət Haqqı %',
+    food: 'Yemək',
+    alcohol: 'Alkoqol',
+    tea: 'Çay/Alkoqolsuz',
+    other: 'Digər',
+    receiptScanner: 'Qəbz Skaner',
+    uploadReceipt: 'Qəbz Şəkli Seç',
+    uploading: 'Yüklənir...',
+    addAll: 'Hamısını Əlavə Et',
+    backToDashboard: 'Tədbirlərə qayıt',
+    createEvent: 'Yeni Tədbir Yarat',
+    eventName: 'Tədbir adı',
+    eventDate: 'Tarix',
+    noEvents: 'Hələ heç bir tədbir yoxdur',
+    total: 'Cəmi',
+    people: 'nəfər',
+    remaining: 'Qalır',
+    subtotal: 'Ara Cəm',
+    totalAmount: 'Ödəniləcək Məbləğ',
+    billSummary: 'Hesab Xülasəsi',
+    copiedToClipboard: 'Buferə köçürüldü!',
+    confirmClearParticipants: 'Bütün iştirakçıları silmək istəyirsiniz? Bu, məhsul təyinatlarını da təmizləyəcək.',
+    confirmClearItems: 'Bütün məhsulları silmək istəyirsiniz?',
+    confirmResetAll: 'Hər şeyi sıfırlamaq istəyirsiniz? Bu, bütün məlumatları təmizləyəcək.',
+    delete: 'Sil',
+    copyToClipboard: 'Buferə Köçür',
+    enterEvent: 'Daxil ol',
+    eventsPanel: 'Tədbirlər Paneli',
+    eventsPanelDescription: 'Tədbirlərinizi idarə edin və hər bir tədbir üçün xərcləri bölüşdürün',
+    eventNamePlaceholder: 'Tədbir adı (məs. Doğum günü 2024)',
+    createEventButton: 'Tədbir Yarat',
+    csvImportInstructions: 'Vergüllə ayrılmış adları daxil edin (məs. Əli, Vəli, Kamran)',
+    csvImportPlaceholder: 'Əli, Vəli, Kamran, Elçin...',
+    bulkImportTitle: 'Çoxlu Ad İdxal Et',
+    import: 'İdxal',
+    receiptScanError: 'Qəbzi skan edərkən xəta baş verdi',
+    receiptScanDescription: 'Qəbz şəklini yükləyin və məhsullar avtomatik əlavə edilsin',
+    taxAndServiceIncluded: 'Vergi və xidmət haqqı daxildir',
+    totalCount: 'Cəmi',
+    finalSplit: 'Son Bölgü',
+    itemsCount: 'məhsul',
+    settlements: 'Hesablaşmalar',
+    settlement: 'Hesablaşma',
+    whoOwesWhom: 'Kim kimə borcludur'
+  },
+  en: {
+    appName: 'SplitIt Pro',
+    tagline: 'Split group expenses easily',
+    login: 'Sign in with Google',
+    logout: 'Logout',
+    darkMode: 'Dark mode',
+    lightMode: 'Light mode',
+    totalBill: 'Total Bill',
+    events: 'Events',
+    participants: 'Participants',
+    items: 'Items',
+    summary: 'Summary',
+    addParticipant: 'Name (e.g. John)',
+    bulkImport: 'Bulk Import (CSV)',
+    clearAll: 'Clear All',
+    selectAll: 'Select All',
+    paid: 'Paid',
+    amountPaid: 'Amount Paid',
+    itemName: 'Item Name',
+    addItem: 'Add New Item',
+    participation: 'Participation',
+    whoPaid: 'Who Paid?',
+    totalPaid: 'Total paid',
+    eachPays: 'Each pays',
+    tax: 'Tax %',
+    serviceFee: 'Service Fee %',
+    food: 'Food',
+    alcohol: 'Alcohol',
+    tea: 'Tea/Non-alcoholic',
+    other: 'Other',
+    receiptScanner: 'Receipt Scanner',
+    uploadReceipt: 'Select Receipt Image',
+    uploading: 'Uploading...',
+    addAll: 'Add All',
+    backToDashboard: 'Back to Events',
+    createEvent: 'Create New Event',
+    eventName: 'Event name',
+    eventDate: 'Date',
+    noEvents: 'No events yet',
+    total: 'Total',
+    people: 'people',
+    remaining: 'Remaining',
+    subtotal: 'Subtotal',
+    totalAmount: 'Total Amount',
+    billSummary: 'Bill Summary',
+    copiedToClipboard: 'Copied to clipboard!',
+    confirmClearParticipants: 'Delete all participants? This will also clear item assignments.',
+    confirmClearItems: 'Delete all items?',
+    confirmResetAll: 'Reset everything? This will clear all data.',
+    delete: 'Delete',
+    copyToClipboard: 'Copy to Clipboard',
+    enterEvent: 'Enter',
+    eventsPanel: 'Events Dashboard',
+    eventsPanelDescription: 'Manage your events and split expenses for each event',
+    eventNamePlaceholder: 'Event name (e.g. Birthday Party 2024)',
+    createEventButton: 'Create Event',
+    csvImportInstructions: 'Enter comma-separated names (e.g. John, Mary, David)',
+    csvImportPlaceholder: 'John, Mary, David, Sarah...',
+    bulkImportTitle: 'Bulk Import Names',
+    import: 'Import',
+    receiptScanError: 'Error scanning receipt',
+    receiptScanDescription: 'Upload receipt image and items will be automatically added',
+    taxAndServiceIncluded: 'Tax and service fee included',
+    totalCount: 'Total',
+    finalSplit: 'Final Split',
+    itemsCount: 'items',
+    settlements: 'Settlements',
+    settlement: 'Settlement',
+    whoOwesWhom: 'Who owes whom'
+  }
+};
+
 const App = () => {
   // --- State ---
   const appRef = useRef(null);
   const [user, setUser] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
+  const [language, setLanguage] = useState('en');
+  const [currency, setCurrency] = useState('$');
   const [billId, setBillId] = useState(null);
   const [syncStatus, setSyncStatus] = useState(null); // 'syncing', 'synced', 'error' or null
   const [participants, setParticipants] = useState([]);
@@ -68,6 +214,13 @@ const App = () => {
   const [lastSaved, setLastSaved] = useState(null);
 
   const isAdmin = user?.role === 'admin';
+  const t = translations[language];
+  
+  const currencies = {
+    '$': { symbol: '$', name: 'USD' },
+    '€': { symbol: '€', name: 'EUR' },
+    '₼': { symbol: '₼', name: 'AZN' }
+  };
 
   // --- API Functions ---
   const getAuthHeaders = () => ({
@@ -392,7 +545,7 @@ const App = () => {
   };
 
   const clearAllParticipants = () => {
-    if (window.confirm('Bütün iştirakçıları silmək istəyirsiniz? Bu, məhsul təyinatlarını da təmizləyəcək.')) {
+    if (window.confirm(t.confirmClearParticipants)) {
       setParticipants([]);
       setItems(items.map(item => ({ ...item, participants: [] })));
     }
@@ -432,7 +585,7 @@ const App = () => {
   };
 
   const clearAllItems = () => {
-    if (window.confirm('Bütün məhsulları silmək istəyirsiniz?')) {
+    if (window.confirm(t.confirmClearItems)) {
       setItems([]);
     }
   };
@@ -476,7 +629,7 @@ const App = () => {
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Receipt scanning error:', error);
-      alert('Qəbzi skan edərkən xəta baş verdi');
+      alert(t.receiptScanError);
     } finally {
       setReceiptScanning(false);
     }
@@ -573,7 +726,7 @@ const App = () => {
   };
 
   const resetAll = () => {
-    if (window.confirm('Hər şeyi sıfırlamaq istəyirsiniz? Bu, bütün məlumatları təmizləyəcək.')) {
+    if (window.confirm(t.confirmResetAll)) {
       setParticipants([]);
       setItems([]);
       setTaxPercent(10);
@@ -761,17 +914,28 @@ const App = () => {
           // Login Screen
           <div className="min-h-screen flex items-center justify-center p-4">
             <div className={`max-w-md w-full ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl p-8 text-center`}>
+              {/* Language selector on login */}
+              <div className="flex justify-end mb-4">
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium ${darkMode ? 'bg-gray-700' : 'bg-slate-100'}`}
+                >
+                  <option value="en">EN</option>
+                  <option value="az">AZ</option>
+                </select>
+              </div>
               <Calculator className="w-16 h-16 mx-auto mb-4 text-blue-600" />
-              <h1 className="text-3xl font-bold mb-2">SplitIt Pro</h1>
+              <h1 className="text-3xl font-bold mb-2">{t.appName}</h1>
               <p className={`mb-8 ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>
-                Qrup xərclərini asanlıqla bölüşdürün
+                {t.tagline}
               </p>
               <button
                 onClick={handleLogin}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition"
               >
                 <LogIn size={20} />
-                Google ilə daxil ol
+                {t.login}
               </button>
             </div>
           </div>
@@ -792,20 +956,39 @@ const App = () => {
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-slate-500'} uppercase font-bold`}>Ümumi Hesab</div>
-                  <div className="text-lg font-black text-blue-600">₼{totals.grandTotal.toFixed(2)}</div>
+                  <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-slate-500'} uppercase font-bold`}>{t.totalBill}</div>
+                  <div className="text-lg font-black text-blue-600">{currency}{totals.grandTotal.toFixed(2)}</div>
                 </div>
+                {/* Language Toggle */}
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className={`px-2 py-1 rounded-lg text-xs font-medium ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-200'} transition`}
+                >
+                  <option value="en">EN</option>
+                  <option value="az">AZ</option>
+                </select>
+                {/* Currency Toggle */}
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className={`px-2 py-1 rounded-lg text-xs font-medium ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-200'} transition`}
+                >
+                  <option value="$">$ USD</option>
+                  <option value="€">€ EUR</option>
+                  <option value="₼">₼ AZN</option>
+                </select>
                 <button
                   onClick={() => setDarkMode(!darkMode)}
                   className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-200'} transition`}
-                  title={darkMode ? 'İşıqlı rejim' : 'Qaranlıq rejim'}
+                  title={darkMode ? t.lightMode : t.darkMode}
                 >
                   {darkMode ? <Sun size={20} /> : <Moon size={20} />}
                 </button>
                 <button
                   onClick={handleLogout}
                   className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-slate-100 hover:bg-slate-200'} transition`}
-                  title="Çıxış"
+                  title={t.logout}
                 >
                   <LogOut size={20} />
                 </button>
@@ -820,9 +1003,9 @@ const App = () => {
           <div className="space-y-6">
             {/* Welcome Header */}
             <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 shadow-lg`}>
-              <h2 className="text-2xl font-bold mb-2">Tədbirlər Paneli</h2>
+              <h2 className="text-2xl font-bold mb-2">{t.eventsPanel}</h2>
               <p className={`${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>
-                Tədbirlərinizi idarə edin və hər bir tədbir üçün xərcləri bölüşdürün
+                {t.eventsPanelDescription}
               </p>
             </div>
 
@@ -830,12 +1013,12 @@ const App = () => {
             {isAdmin && (
               <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 shadow-lg`}>
                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                  <Plus className="text-blue-600" /> Yeni Tədbir Yarat
+                  <Plus className="text-blue-600" /> {t.createEvent}
                 </h3>
                 <div className="space-y-3">
                   <input
                     type="text"
-                    placeholder="Tədbir adı (məs. Doğum günü 2024)"
+                    placeholder={t.eventNamePlaceholder}
                     className={`w-full p-3 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
                     value={newEventTitle}
                     onChange={(e) => setNewEventTitle(e.target.value)}
@@ -851,7 +1034,7 @@ const App = () => {
                     disabled={!newEventTitle.trim()}
                     className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition"
                   >
-                    <Plus size={20} /> Tədbir Yarat
+                    <Plus size={20} /> {t.createEventButton}
                   </button>
                 </div>
               </div>
@@ -859,12 +1042,12 @@ const App = () => {
 
             {/* Events List */}
             <div>
-              <h3 className="font-bold text-lg mb-4">Tədbirlər ({allEvents.length})</h3>
+              <h3 className="font-bold text-lg mb-4">{t.events} ({allEvents.length})</h3>
               {allEvents.length === 0 ? (
                 <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-8 shadow-lg text-center`}>
                   <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                   <p className={`${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>
-                    Hələ heç bir tədbir yoxdur
+                    {t.noEvents}
                   </p>
                 </div>
               ) : (
@@ -880,7 +1063,7 @@ const App = () => {
                           <h4 className="font-bold text-lg">{event.title}</h4>
                           {event.event_date && (
                             <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>
-                              {new Date(event.event_date).toLocaleDateString('az-AZ')}
+                              {new Date(event.event_date).toLocaleDateString(language === 'az' ? 'az-AZ' : 'en-US')}
                             </p>
                           )}
                         </div>
@@ -916,7 +1099,7 @@ const App = () => {
               className={`${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-50'} rounded-xl p-3 shadow flex items-center gap-2 font-medium transition`}
             >
               <ChevronRight className="rotate-180" size={20} />
-              Tədbirlərə qayıt
+              {t.backToDashboard}
             </button>
 
             {/* Current Event Header */}
@@ -940,19 +1123,19 @@ const App = () => {
             onClick={() => setActiveTab('people')}
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'people' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
           >
-            <Users size={16} /> İştirakçılar ({participants.length})
+            <Users size={16} /> {t.participants} ({participants.length})
           </button>
           <button 
             onClick={() => setActiveTab('items')}
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'items' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
           >
-            <Receipt size={16} /> Məhsullar ({items.length})
+            <Receipt size={16} /> {t.items} ({items.length})
           </button>
           <button 
             onClick={() => setActiveTab('summary')}
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition ${activeTab === 'summary' ? 'bg-white shadow text-blue-600' : 'text-slate-600'}`}
           >
-            <Share2 size={16} /> Xülasə
+            <Share2 size={16} /> {t.summary}
           </button>
         </div>
 
@@ -961,7 +1144,7 @@ const App = () => {
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
             {/* Single Add */}
             <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-3">
-              <div className="text-xs font-bold text-blue-700 mb-2">Cəmi: {participants.length} nəfər</div>
+              <div className="text-xs font-bold text-blue-700 mb-2">{t.totalCount}: {participants.length} {t.people}</div>
             </div>
             <form onSubmit={addParticipant} className="flex gap-2">
               <input 
@@ -984,14 +1167,14 @@ const App = () => {
                 onClick={() => setShowCsvImport(!showCsvImport)}
                 className="flex-1 bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition flex items-center justify-center gap-2 text-sm font-medium"
               >
-                <Upload size={16} /> Toplu İdxal (CSV)
+                <Upload size={16} /> {t.bulkImport}
               </button>
               {participants.length > 0 && (
                 <button 
                   onClick={clearAllParticipants}
                   className="bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 transition flex items-center gap-2 text-sm font-medium"
                 >
-                  <Trash size={16} /> Hamısını Təmizlə
+                  <Trash size={16} /> {t.clearAll}
                 </button>
               )}
             </div>
@@ -1001,22 +1184,22 @@ const App = () => {
             {showCsvImport && (
               <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-blue-900">Çoxlu Ad İdxal Et</h3>
+                  <h3 className="font-bold text-blue-900">{t.bulkImportTitle}</h3>
                   <button onClick={() => setShowCsvImport(false)} className="text-blue-600 hover:text-blue-800">
                     <XCircle size={20} />
                   </button>
                 </div>
-                <p className="text-xs text-blue-700">Vergüllə ayrılmış adları daxil edin (məs. Əli, Vəli, Kamran)</p>
+                <p className="text-xs text-blue-700">{t.csvImportInstructions}</p>
                 <form onSubmit={importCsv} className="flex gap-2">
                   <input 
                     type="text" 
-                    placeholder="Əli, Vəli, Kamran, Elçin..." 
+                    placeholder={t.csvImportPlaceholder} 
                     className={`flex-1 p-3 rounded-xl border-2 focus:ring-2 focus:ring-blue-500 outline-none ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-white text-gray-900 border-blue-300'}`}
                     value={csvInput}
                     onChange={(e) => setCsvInput(e.target.value)}
                   />
                   <button type="submit" className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition font-medium">
-                    İdxal
+                    {t.import}
                   </button>
                 </form>
               </div>
@@ -1052,7 +1235,7 @@ const App = () => {
                   <div className="ml-9 flex items-center gap-2">
                     <label className="text-xs text-slate-500 whitespace-nowrap">Ödənilən məbləğ:</label>
                     <div className="flex-1 relative">
-                      <span className="absolute left-2 top-1.5 text-slate-400 text-sm">₼</span>
+                      <span className="absolute left-2 top-1.5 text-slate-400 text-sm">{currency}</span>
                       <input 
                         type="number"
                         step="0.01"
@@ -1096,14 +1279,15 @@ const App = () => {
                       className={`text-lg font-bold w-full bg-transparent border-b focus:border-blue-200 outline-none ${darkMode ? 'text-gray-100 border-gray-700' : 'text-gray-900 border-transparent'}`}
                       value={item.name}
                       onChange={(e) => updateItem(item.id, 'name', e.target.value)}
-                      placeholder="Məhsulun Adı"
+                      placeholder={t.itemName}
                       disabled={!isAdmin}
                     />
                     <div className="flex gap-4">
                       <div className="flex-1 relative">
-                        <span className={`absolute left-3 top-2 ${darkMode ? 'text-gray-400' : 'text-slate-400'}`}>₼</span>
+                        <span className={`absolute left-3 top-2 ${darkMode ? 'text-gray-400' : 'text-slate-400'}`}>{currency}</span>
                         <input 
                           type="number"
+                          step="0.01"
                           className={`w-full pl-7 pr-3 py-2 rounded-lg border text-sm ${darkMode ? 'bg-gray-700 text-gray-100 border-gray-600' : 'bg-slate-50 text-gray-900 border-gray-300'}`}
                           value={item.price}
                           onChange={(e) => updateItem(item.id, 'price', e.target.value)}
@@ -1116,9 +1300,10 @@ const App = () => {
                         onChange={(e) => updateItem(item.id, 'category', e.target.value)}
                         disabled={!isAdmin}
                       >
-                        <option value="food">Yemək</option>
-                        <option value="alcohol">Alkoqol</option>
-                        <option value="tea">Çay/Alkoqolsuz</option>
+                        <option value="food">{t.food}</option>
+                        <option value="alcohol">{t.alcohol}</option>
+                        <option value="tea">{t.tea}</option>
+                        <option value="other">{t.other}</option>
                       </select>
                     </div>
                   </div>
@@ -1152,7 +1337,7 @@ const App = () => {
                       onClick={() => updateItem(item.id, 'participants', item.participants.length === participants.length ? [] : participants.map(p => p.id))}
                       className="text-xs text-blue-600 font-medium"
                     >
-                      {item.participants.length === participants.length ? 'Hamısını Təmizlə' : 'Hamısını Seç'}
+                      {item.participants.length === participants.length ? t.clearAll : t.selectAll}
                     </button>
                     )}
                   </div>
@@ -1177,7 +1362,7 @@ const App = () => {
                   </div>
                   {item.participants.length > 0 && (
                     <div className="mt-3 text-[10px] text-slate-400 text-right italic">
-                      Hər biri ödəyir: ₼{(item.price / item.participants.length).toFixed(2)}
+                      {t.eachPays}: {currency}{(item.price / item.participants.length).toFixed(2)}
                     </div>
                   )}
                 </div>
@@ -1206,7 +1391,7 @@ const App = () => {
                       }}
                       className="text-xs text-emerald-600 font-medium"
                     >
-                      {Object.keys(item.paidBy || {}).length === participants.length ? 'Hamısını Təmizlə' : 'Hamısını Seç'}
+                      {Object.keys(item.paidBy || {}).length === participants.length ? t.clearAll : t.selectAll}
                     </button>
                     )}
                   </div>
@@ -1235,7 +1420,7 @@ const App = () => {
                           </span>
                           {isPayer && (
                             <div className="flex items-center gap-1">
-                              <span className="text-slate-500 text-xs">₼</span>
+                              <span className="text-slate-500 text-xs">{currency}</span>
                               <input
                                 type="number"
                                 step="0.01"
@@ -1255,7 +1440,7 @@ const App = () => {
                   </div>
                   {Object.keys(item.paidBy || {}).length > 0 && (
                     <div className="mt-3 text-[10px] text-slate-400 text-right italic">
-                      Cəmi ödənildi: ₼{getTotalPaid(item.paidBy).toFixed(2)}
+                      {t.totalPaid}: {currency}{getTotalPaid(item.paidBy).toFixed(2)}
                     </div>
                   )}
                 </div>
@@ -1271,13 +1456,13 @@ const App = () => {
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h3 className="font-bold text-purple-900 flex items-center gap-2">
-                      <Camera size={18} /> Qəbz Skaner
+                      <Camera size={18} /> {t.receiptScanner}
                     </h3>
-                    <p className="text-xs text-purple-600 mt-1">Qəbz şəklini yükləyin və məhsullar avtomatik əlavə edilsin</p>
+                    <p className="text-xs text-purple-600 mt-1">{t.receiptScanDescription}</p>
                   </div>
                 </div>
                 <label className="flex items-center justify-center gap-2 py-3 px-4 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition cursor-pointer font-medium">
-                  <Camera size={18} /> {receiptScanning ? 'Yüklənir...' : 'Qəbz Şəkli Seç'}
+                  <Camera size={18} /> {receiptScanning ? t.uploading : t.uploadReceipt}
                   <input 
                     type="file" 
                     accept="image/*" 
@@ -1301,7 +1486,7 @@ const App = () => {
                     {extractedItems.map((item, idx) => (
                       <div key={idx} className="bg-white rounded-lg p-3 flex justify-between items-center">
                         <span className="font-medium text-gray-800">{item.name}</span>
-                        <span className="text-green-700 font-bold">₼{item.price}</span>
+                        <span className="text-green-700 font-bold">{currency}{item.price}</span>
                       </div>
                     ))}
                   </div>
@@ -1309,7 +1494,7 @@ const App = () => {
                     onClick={addExtractedItems}
                     className="w-full py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition font-medium flex items-center justify-center gap-2"
                   >
-                    <Plus size={18} /> Hamısını Əlavə Et
+                    <Plus size={18} /> {t.addAll}
                   </button>
                 </div>
               )}
@@ -1320,14 +1505,14 @@ const App = () => {
                   onClick={addItem}
                   className="flex-1 py-4 border-2 border-dashed border-slate-300 rounded-2xl text-slate-500 font-medium hover:border-blue-400 hover:text-blue-500 transition flex items-center justify-center gap-2"
                 >
-                  <Plus size={18} /> Yeni Məhsul Əlavə Et
+                  <Plus size={18} /> {t.addItem}
                 </button>
                 {items.length > 0 && (
                   <button 
                     onClick={clearAllItems}
                     className="bg-red-600 text-white px-6 py-4 rounded-2xl hover:bg-red-700 transition flex items-center gap-2"
                   >
-                    <Trash size={18} /> Hamısını Təmizlə
+                    <Trash size={18} /> {t.clearAll}
                   </button>
                 )}
               </div>
@@ -1368,8 +1553,8 @@ const App = () => {
             {/* Individual Shares */}
             <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
               <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
-                <h3 className="font-bold text-slate-700 uppercase text-xs tracking-wider">Son Bölgü</h3>
-                <span className="text-[10px] text-slate-500 italic">Vergi və xidmət haqqı daxildir</span>
+                <h3 className="font-bold text-slate-700 uppercase text-xs tracking-wider">{t.finalSplit}</h3>
+                <span className="text-[10px] text-slate-500 italic">{t.taxAndServiceIncluded}</span>
               </div>
               {participants.map((p, idx) => (
                 <div key={p.id} className={`p-4 flex justify-between items-center ${idx !== participants.length - 1 ? 'border-b' : ''}`}>
@@ -1382,15 +1567,15 @@ const App = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className={`font-bold ${p.paid ? 'text-slate-400 line-through' : ''}`}>{p.name}</span>
-                        {p.paid && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Ödənildi</span>}
+                        {p.paid && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">{t.paid}</span>}
                       </div>
                       <div className="text-[10px] text-slate-400">
-                        {items.filter(i => i.participants.includes(p.id)).length} məhsul
+                        {items.filter(i => i.participants.includes(p.id)).length} {t.itemsCount}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className={`font-black ${p.paid ? 'text-slate-400' : 'text-slate-900'}`}>₼{(totals.finalShares[p.id] || 0).toFixed(2)}</div>
+                    <div className={`font-black ${p.paid ? 'text-slate-400' : 'text-slate-900'}`}>{currency}{(totals.finalShares[p.id] || 0).toFixed(2)}</div>
                   </div>
                 </div>
               ))}
@@ -1401,9 +1586,9 @@ const App = () => {
               <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
                 <div className="p-4 border-b bg-emerald-50 flex justify-between items-center">
                   <h3 className="font-bold text-emerald-700 uppercase text-xs tracking-wider flex items-center gap-2">
-                    <Calculator size={14}/> Hesablaşma
+                    <Calculator size={14}/> {t.settlement}
                   </h3>
-                  <span className="text-[10px] text-emerald-600 italic">Kim kimə borcludur</span>
+                  <span className="text-[10px] text-emerald-600 italic">{t.whoOwesWhom}</span>
                 </div>
                 <div className="p-4 space-y-3">
                   {settlements.transactions.map((transaction, idx) => (
@@ -1430,7 +1615,7 @@ const App = () => {
                         </div>
                       </div>
                       <div className="ml-4 text-right">
-                        <div className="font-black text-emerald-600">₼{transaction.amount.toFixed(2)}</div>
+                        <div className="font-black text-emerald-600">{currency}{transaction.amount.toFixed(2)}</div>
                       </div>
                     </div>
                   ))}
@@ -1441,21 +1626,21 @@ const App = () => {
             {/* Bill Summary */}
             <div className="bg-slate-900 text-white rounded-2xl p-6 space-y-3">
               <div className="flex justify-between text-slate-400 text-sm">
-                <span>Ara Cəm</span>
-                <span>₼{totals.subtotal.toFixed(2)}</span>
+                <span>{t.subtotal}</span>
+                <span>{currency}{totals.subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-slate-400 text-sm">
-                <span>Vergi ({taxPercent}%)</span>
-                <span>₼{totals.taxAmount.toFixed(2)}</span>
+                <span>{t.tax.replace('%', '')} ({taxPercent}%)</span>
+                <span>{currency}{totals.taxAmount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-slate-400 text-sm">
-                <span>Xidmət Haqqı ({tipPercent}%)</span>
-                <span>₼{totals.tipAmount.toFixed(2)}</span>
+                <span>{t.serviceFee.replace(' %', '')} ({tipPercent}%)</span>
+                <span>{currency}{totals.tipAmount.toFixed(2)}</span>
               </div>
               <div className="h-px bg-slate-700 my-2" />
               <div className="flex justify-between text-lg font-bold">
-                <span>Ödəniləcək Məbləğ</span>
-                <span className="text-blue-400">₼{totals.grandTotal.toFixed(2)}</span>
+                <span>{t.totalAmount}</span>
+                <span className="text-blue-400">{currency}{totals.grandTotal.toFixed(2)}</span>
               </div>
             </div>
 
@@ -1463,9 +1648,9 @@ const App = () => {
             <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => {
-                  const text = participants.map(p => `${p.name}: ₼${totals.finalShares[p.id].toFixed(2)}${p.paid ? ' ✓' : ''}`).join('\n');
-                  navigator.clipboard.writeText(`Hesab Xülasəsi:\n${text}\nCəmi: ₼${totals.grandTotal.toFixed(2)}`);
-                  alert('Buferə köçürüldü!');
+                  const text = participants.map(p => `${p.name}: ${currency}${totals.finalShares[p.id].toFixed(2)}${p.paid ? ' ✓' : ''}`).join('\n');
+                  navigator.clipboard.writeText(`${t.billSummary}:\n${text}\n${t.total}: ${currency}${totals.grandTotal.toFixed(2)}`);
+                  alert(t.copiedToClipboard);
                 }}
                 className="col-span-2 bg-blue-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 transition"
               >
@@ -1507,9 +1692,9 @@ const App = () => {
                   </div>
                 </div>
                 <div>
-                  <div className="text-slate-500 text-xs">Qalıq</div>
+                  <div className="text-slate-500 text-xs">{t.remaining}</div>
                   <div className="text-lg font-black text-orange-600">
-                    ₼{participants.filter(p => !p.paid).reduce((sum, p) => sum + (totals.finalShares[p.id] || 0), 0).toFixed(2)}
+                    {currency}{participants.filter(p => !p.paid).reduce((sum, p) => sum + (totals.finalShares[p.id] || 0), 0).toFixed(2)}
                   </div>
                 </div>
               </div>
