@@ -436,7 +436,12 @@ const App = () => {
           // Load existing data
           const latestBill = bills[0];
           setParticipants(latestBill.participants || []);
-          setItems(latestBill.items || []);
+          // Convert prices to numbers to avoid toFixed errors
+          const itemsWithNumbers = (latestBill.items || []).map(item => ({
+            ...item,
+            price: Number(item.price) || 0
+          }));
+          setItems(itemsWithNumbers);
           setTaxPercent(latestBill.taxPercent !== undefined ? latestBill.taxPercent : 10);
           setTipPercent(latestBill.tipPercent !== undefined ? latestBill.tipPercent : 15);
           setBillId(latestBill.id || null);
@@ -1390,7 +1395,7 @@ const App = () => {
                   </div>
                   {item.participants.length > 0 && (
                     <div className="mt-3 text-[10px] text-slate-400 text-right italic">
-                      {t.eachPays}: {currency}{(item.price / item.participants.length).toFixed(2)}
+                      {t.eachPays}: {currency}{(Number(item.price) / item.participants.length).toFixed(2)}
                     </div>
                   )}
                 </div>
@@ -1409,7 +1414,7 @@ const App = () => {
                           updateItem(item.id, 'paidBy', {});
                         } else {
                           // Split equally among all participants
-                          const perPerson = item.price / participants.length;
+                          const perPerson = Number(item.price) / participants.length;
                           const newPaidBy = {};
                           participants.forEach(p => {
                             newPaidBy[p.id] = perPerson;
@@ -1468,7 +1473,7 @@ const App = () => {
                   </div>
                   {Object.keys(item.paidBy || {}).length > 0 && (() => {
                     const totalPaid = getTotalPaid(item.paidBy);
-                    const remaining = item.price - totalPaid;
+                    const remaining = Number(item.price) - totalPaid;
                     const isExact = Math.abs(remaining) < 0.01;
                     const isOver = remaining < -0.01;
                     
@@ -1476,7 +1481,7 @@ const App = () => {
                       <div className="mt-3 space-y-1.5">
                         <div className="flex justify-between items-center text-xs">
                           <span className="text-slate-500">{t.itemPrice}:</span>
-                          <span className="font-bold text-slate-700">{currency}{item.price.toFixed(2)}</span>
+                          <span className="font-bold text-slate-700">{currency}{Number(item.price).toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between items-center text-xs">
                           <span className="text-slate-500">{t.totalPaid}:</span>
@@ -1543,7 +1548,7 @@ const App = () => {
                     {extractedItems.map((item, idx) => (
                       <div key={idx} className="bg-white rounded-lg p-3 flex justify-between items-center">
                         <span className="font-medium text-gray-800">{item.name}</span>
-                        <span className="text-green-700 font-bold">{currency}{item.price}</span>
+                        <span className="text-green-700 font-bold">{currency}{Number(item.price).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
